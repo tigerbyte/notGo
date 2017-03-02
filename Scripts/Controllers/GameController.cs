@@ -1,8 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
-using System.Text;
+
 
 public class GameController : MonoBehaviour {
 
@@ -10,15 +9,9 @@ public class GameController : MonoBehaviour {
 	enum direction { up, down, left, right };
 	public Stage stage; // Stage contains a 2D array of tiles (Stage.tiles[x,y])
 	Player player1, player2; // players hold their selected tile co-ordinates
-	Runner runnerp1;
-	public GameObject runnerp1_obj;
-    public GameObject tile;
+	public GameObject tile;
 	Material voidMat, voidRedSelected, voidBlueSelected, redOwnedBlueSelected, redOwnedRedSelected, blueOwnedRedSelected, blueOwnedBlueSelected, blueMat, redMat;
-    private bool[,] map1,map2;
-    private searchParams searchParam1,searchParam2;
-	List<Tile> updatedTiles = new List<Tile>(); // a list of tiles whose states have changed (could be static in tile class??)
-
-
+   	List<Tile> updatedTiles = new List<Tile>(); // a list of tiles whose states have changed (could be static in tile class??)
 
 	public const int DIMENSIONS = 10;
 
@@ -29,9 +22,8 @@ public class GameController : MonoBehaviour {
 		player2 = new Player (2);
         stage = new Stage (DIMENSIONS); // instantiate a square stage with height/width of dimensions
 		CreateTiles (); // create tile game objects to associate with data structure
-		CreateRunner(); // create p1 runner for testing pathing
-		initPathfinding();
-         //causes memory leaks atm ignore it
+
+        
 	}
 
 	// something
@@ -47,66 +39,19 @@ public class GameController : MonoBehaviour {
 				Tile.changedTiles.Add(stage.tiles[i, j]);
 			}
 		}
+		Debug.Log ("created tilezz");
 		UpdateTiles ();
 	}
 
-    void CreateRunner() {
-        Debug.Log("making a runner");
+    
+   
+  
 
-        GameObject runner_go = Instantiate(runnerp1_obj, new Vector3(0f, 0.75f, 0f), Quaternion.identity);
-		runnerp1 = new Runner(0, 0, Runner.Owner.Player1);
-        runnerp1.Runner_gameObj = runner_go;
-    }
 
-    // test method ignore
-    void initMap1() {
-        this.map1 = new bool[DIMENSIONS, DIMENSIONS];
-        for (int y = 0; y < DIMENSIONS; y++)
-            for (int x = 0; x < DIMENSIONS; x++)
-                map1[x, y] = false;
-		var startLocation = new Tile((int)runnerp1.x, (int)runnerp1.y);
-        var endLocation = new Tile(9,9);
-        this.searchParam1 = new searchParams(startLocation, endLocation, map1);
-    }
+   
+    
 
-	public void initPathfinding(){
-		initMap1();
-		//initMap2();
-	}
-
-    // this is just a test method to show the route
-    private void showRoute(string title, IEnumerable<Tile> path) {
-
-        Debug.Log(title);
-        for (int y = this.map1.GetLength(1) - 1; y >= 0; y--) {
-            for (int x = 0; x < this.map1.GetLength(0); x++) {
-				if (searchParam1.StartLocation.Equals (new Tile (x, y))) {
-					Debug.Log ("S" + searchParam1.StartLocation.X + " " + searchParam1.StartLocation.Y);
-				} else if (this.searchParam1.EndLocaton.Equals (new Tile (x, y))) {
-					Debug.Log ("F" + searchParam1.EndLocaton.X + " " + searchParam1.EndLocaton.Y);
-				} else if (this.map1 [x, y] == false) {
-					Debug.Log ("no route found");
-				} else if (path.Where (p => p.X == x && p.Y == y).Any ()) {
-					foreach (Tile t in path)
-						Debug.Log (t.X + " " + t.Y);
-				} else {
-					Debug.Log ('-');
-				}
-            }
-        }
-    }
-
-	private void RunnerUpdate() {
-		Tile runnerp1TileStart = new Tile ((int)runnerp1.x,(int)runnerp1.y);
-		Tile runnerp1TileEnd = new Tile (9,9);
-
-		searchParam1.StartLocation = runnerp1TileStart;
-		searchParam1.EndLocaton = runnerp1TileEnd;
-
-		AStarPathing pathfinder1 = new AStarPathing(searchParam1);
-		List<Tile> path1 = pathfinder1.FindPath();
-		showRoute("Showing Route ", path1);
-	}
+ 
 
 	void UpdateTiles () {
 		foreach (Tile t in Tile.changedTiles) {
@@ -126,8 +71,12 @@ public class GameController : MonoBehaviour {
 					t.Tile_gameObj.GetComponent<Renderer> ().material = blueOwnedBlueSelected; 
 				} else if (t.X == player2.selectedX && t.Y == player2.selectedY) {
 					t.Tile_gameObj.GetComponent<Renderer> ().material = blueOwnedRedSelected;
+
 				} else {
 					t.Tile_gameObj.GetComponent<Renderer> ().material = blueMat;
+
+
+
 				}
 				break;
 			case Tile.TileType.Player2:
@@ -147,7 +96,7 @@ public class GameController : MonoBehaviour {
 		
 	void Update () {
 		PlayerUpdate ();
-		// RunnerUpdate ();
+
 	}
 
 	// move the given player in the given direction
@@ -195,10 +144,8 @@ public class GameController : MonoBehaviour {
 		}
 			
 		if (Input.GetKeyDown ("space")) {
-			if (player1.CanPlay && stage.tiles [player1.selectedX, player1.selectedY].Type == Tile.TileType.Void) {
+			if (stage.tiles [player1.selectedX, player1.selectedY].Type == Tile.TileType.Void) {
 				CaptureTile (1, player1.selectedX, player1.selectedY);
-				player1.CanPlay = false;
-				Invoke ("EnablePlayer1", player1.TileCooldown);
 			}
 		}
 
@@ -226,16 +173,17 @@ public class GameController : MonoBehaviour {
 		}
 
 		if (Input.GetKeyDown ("enter")) {
-			if (player2.CanPlay && stage.tiles [player2.selectedX, player2.selectedY].Type == Tile.TileType.Void) {
+			if (stage.tiles [player2.selectedX, player2.selectedY].Type == Tile.TileType.Void) {
 				CaptureTile (2, player2.selectedX, player2.selectedY);
-				player2.CanPlay = false;
-				Invoke ("EnablePlayer2", player2.TileCooldown);
 			}
         }
 	}
 
 
+
+
 	// call this function when player takes a tile: pass in the player Number(1/2), and co-ordinates of tile to capture
+	// runnerUpdate() is called when a tile is updated
 	public void CaptureTile (int playerNum, int x, int y) {
 
 		audio.PlayCaptureSoundEffect ();
@@ -360,10 +308,12 @@ public class GameController : MonoBehaviour {
 		}
 		// update all the tiles that have been changed
 		UpdateTiles ();
+
 	}
 	
 
 	// function to add the list of captured tiles generated by each branch, to a list of all tiles to be updated
+
 	public void AddCapturedToChanged(int playerNum, List<Tile> capturedTiles) {
 		Debug.Log ("capturedTiles capacity is : " + capturedTiles.Count);
 
@@ -373,25 +323,17 @@ public class GameController : MonoBehaviour {
 			foreach (Tile t in capturedTiles) {
 				// Debug.Log ("this captured tile X=" + t.X + ", Y=" + t.Y);
 				if (playerNum == 1) t.Type = Tile.TileType.Player1;
-				map1 [t.X, t.Y] = true; 
-				Debug.Log (t.X + " " +  t.Y);
+
 
 				if (playerNum == 2) t.Type = Tile.TileType.Player2;
 				Tile.changedTiles.Add (t);
 			}
 			capturedTiles.Clear();
+
 		}
+
 	}
-		
-	// re-enable player ability to place tiles
-	// probably find a better way to do this
-	public void EnablePlayer1() {
-		player1.CanPlay = true;
-	}
-	public void EnablePlayer2() {
-		player2.CanPlay = true;
-	}
-		
+
 	void LoadAssets() { // Load Prefabs/Materials from Resources folder
 		// load from the Assets/Resources Folder
 		tile = (GameObject)Resources.Load ("Prefabs/TilePrefab");
