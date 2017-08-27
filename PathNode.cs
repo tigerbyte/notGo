@@ -12,7 +12,7 @@ public class PathNode : IComparable<PathNode> {
     PathNode parent;
 
     // constructor
-    public PathNode (int x, int y, int distance, PathNode parent = null) {
+    public PathNode (int x, int y, int distance = 0, PathNode parent = null) {
         this.x = x;
         this.y = y;
         this.distance = distance;

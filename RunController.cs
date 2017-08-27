@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class RunController : MonoBehaviour {
 
+    public bool pathDebugging = false; // set true or false based on whether you want to see path debugger msgs
+
     GameObject RunnerObject; // Runner GameObject
 
     // references to the gamecontroller and the players for convenience
@@ -16,20 +18,20 @@ public class RunController : MonoBehaviour {
 
     Material redMat, blueMat; // temporary solution to visually indicate runner owner [remove later]
 
-    void Start () {
+    void Start() {
         // get a reference to the GameController, which will allow us to access Players, runners, etc.
-        gameController = (GameController) GameObject.FindObjectOfType(typeof(GameController));
-        audioController = (AudioController) GameObject.FindObjectOfType(typeof(AudioController));
+        gameController = (GameController)GameObject.FindObjectOfType(typeof(GameController));
+        audioController = (AudioController)GameObject.FindObjectOfType(typeof(AudioController));
         stage = gameController.stage;
         p1 = gameController.player1;
         p2 = gameController.player2;
 
-        RunnerObject = (GameObject) Resources.Load("Prefabs/Runner");
+        RunnerObject = (GameObject)Resources.Load("Prefabs/Runner");
 
         LoadAssets(); // [remove later]
     }
 
-	void Update () {
+    void Update() {
         // check if players have a runner on the board, if not, check if they own a tile in their respective first row for spawning
         checkP1RunnerStatus();
         checkP2RunnerStatus();
@@ -38,7 +40,8 @@ public class RunController : MonoBehaviour {
     void checkP1RunnerStatus() {
         // possible TODO: use shortest path to spawn runner in the most optimal starting position
         // (currently spawns in the first available position found)
-        if (p1.Runner == null)
+
+        if (p1.Runner == null) // if p1 doesn't have a runner yet then spawn one
         {
             for (int i = 0; i < gameController.DIMENSIONS; i++)
             {
@@ -56,14 +59,18 @@ public class RunController : MonoBehaviour {
                 }
             }
         }
+        // if a path exists and there are still nodes in it
         else if (p1.Runner.RunPath != null && p1.Runner.RunPath.Count > 1)
         {
+            // TO DO :: currently allows diagonal movement ( two ifs satisfied simultaneously ), Limit to unidirectional movement
+
             // Debug.Log("p1RunnerObject.transform.position.z = " + p1.Runner.gameObj.transform.position.z + " p1.Runner.RunPath[1].Y = " + p1.Runner.RunPath[1].Y);
             if (p1.Runner.gameObj.transform.position.z < p1.Runner.RunPath[1].Y) { MoveRunnerObject(p1.Runner.gameObj, direction.up); }
             if (p1.Runner.gameObj.transform.position.z > p1.Runner.RunPath[1].Y) { MoveRunnerObject(p1.Runner.gameObj, direction.down); }
             if (p1.Runner.gameObj.transform.position.x > p1.Runner.RunPath[1].X) { MoveRunnerObject(p1.Runner.gameObj, direction.left); }
             if (p1.Runner.gameObj.transform.position.x < p1.Runner.RunPath[1].X) { MoveRunnerObject(p1.Runner.gameObj, direction.right); }
 
+            // check if we've reached a new tile, for updates
             p1.Runner.ComparePositionToPath();
         }
     }
@@ -87,42 +94,66 @@ public class RunController : MonoBehaviour {
                 }
             }
         }
+        // if a path exists and there are still nodes in it
+        else if (p2.Runner.RunPath != null && p2.Runner.RunPath.Count > 1)
+        {
+            // TO DO :: currently allows diagonal movement ( two ifs satisfied simultaneously ), Limit to unidirectional movement
+
+            // Debug.Log("p1RunnerObject.transform.position.z = " + p1.Runner.gameObj.transform.position.z + " p1.Runner.RunPath[1].Y = " + p1.Runner.RunPath[1].Y);
+            if (p2.Runner.gameObj.transform.position.z < p2.Runner.RunPath[1].Y) { MoveRunnerObject(p2.Runner.gameObj, direction.up); }
+            if (p2.Runner.gameObj.transform.position.z > p2.Runner.RunPath[1].Y) { MoveRunnerObject(p2.Runner.gameObj, direction.down); }
+            if (p2.Runner.gameObj.transform.position.x > p2.Runner.RunPath[1].X) { MoveRunnerObject(p2.Runner.gameObj, direction.left); }
+            if (p2.Runner.gameObj.transform.position.x < p2.Runner.RunPath[1].X) { MoveRunnerObject(p2.Runner.gameObj, direction.right); }
+
+            // check if we've reached a new tile, for updates
+            p2.Runner.ComparePositionToPath();
+        }
     }
 
-
-    // should use stage.Dimensions instead of 10 , but having issues with that ( non static stage , initialization order )
-    List<PathNode> orderedNodes = new List<PathNode>(); // ordered list for djikstra sequence
+    List<PathNode> orderedNodes = new List<PathNode>(); // A list of nodes (Tile positions) ordered by least to greatest distance from runner
 
     // build a map of connected tiles for player 1
-    public void BuildNodeMap() 
+    public void BuildNodeMap(Player player)
     {
         // TO DO : Refactoring ...
         // Find a better way than using Tile AND PathNode objects
         // Lots of list work might be resource intensive
         // Use PathNode Explored bool to skip unnecessary work
         // seperate into different functions
+        if (player.Runner == null) { return; }
 
-        Debug.Log("building node map");
+        if (pathDebugging == true) {
+            Debug.Log("Player 1 Max Y is = " + findMaxY());
+            Debug.Log("/// building node map ///");
+        }
 
-        PathNode[,] pathNodes = new PathNode[10, 10]; // used below , needs global scope to maintain state between function calls 
-        Tile curr = stage.tiles[p1.Runner.X, p1.Runner.Y]; // current tile, starts at runner but expands out by lowest distance
+        PathNode[,] pathNodes = new PathNode[10, 10];
+        // current tile being analyzed, starts at runner position but expands out by lowest distance using djikstra
+        pathNodes[player.Runner.X, player.Runner.Y] = new PathNode(player.Runner.X, player.Runner.Y, 0);
+        PathNode curr = pathNodes[player.Runner.X, player.Runner.Y];
 
-        pathNodes[curr.X, curr.Y] = new PathNode(curr.X, curr.Y, 0);
-        pathNodes[curr.X, curr.Y].Explored = true;
+        Tile.TileType playersTileType = player.GetTileType();
+
+        // clear any leftovers (from previous use) in the ordered list, just in case
+        // the list is ordered by nodes with the lowest distance from our tile being analyzed, and gets cleared out as we expand out further in our search
+        if (orderedNodes.Count > 0) { orderedNodes.Clear(); }
+
+        // add the node corresponding to runner position to the first spot in the list
         orderedNodes.Add(pathNodes[curr.X, curr.Y]);
 
-        PathNode destination = pathNodes[curr.X, curr.Y]; // the node with the highest Y value that we can send the runner to 
+        // the node with the highest Y value that we can send the runner to, gets updated later if we find nodes with higher Y values
+        PathNode destination = pathNodes[curr.X, curr.Y];
 
+        if (pathDebugging == true) { Debug.Log("orderedNodes capacity is " + orderedNodes.Count + ": [ x = " + orderedNodes[0].X + ", y = " + orderedNodes[0].Y + " ]"); }
 
-
-        Debug.Log("orderedNodes capacity is " + orderedNodes.Count);
         while (orderedNodes.Count > 0)
         {
-            // check above, left, right, below Current tile (curr) , which starts at runner position and expands out to friendly tiles
-            // current tile is updated to the next tile with lowest distance following top/left/right/down pattern
+            // next 4 blocks are basically the same thing 4 times , one for each direction : up / left / right / down
+            // if we find tiles with friendly type, create a corresponding pathNode
+            // add it to the list of orderedNodes, keeping track of its distance from the original source, and its parent so we can build a final path
 
             // Check Above ( Y + 1 )
-            if (curr.Y < 9 && stage.tiles[curr.X, curr.Y + 1].Type == Tile.TileType.Player1 && pathNodes[curr.X, curr.Y + 1] == null)
+            if (curr.Y < 9 && stage.tiles[curr.X, curr.Y + 1].Type == playersTileType && pathNodes[curr.X, curr.Y + 1] == null)
             {
                 pathNodes[curr.X, curr.Y + 1] = new PathNode(curr.X, curr.Y + 1, (pathNodes[curr.X, curr.Y].Distance + 1));
                 orderedNodes.Add(pathNodes[curr.X, curr.Y + 1]);
@@ -132,11 +163,11 @@ public class RunController : MonoBehaviour {
                     pathNodes[curr.X, curr.Y + 1].Parent = pathNodes[curr.X, curr.Y];
                 }
 
-                Debug.Log("created a path node at x:" + curr.X + " y:" + (curr.Y + 1) + " :: with parent at x: " + curr.X + " y: " + curr.Y);
+                if (pathDebugging == true) { Debug.Log("created a path node at x:" + curr.X + " y:" + (curr.Y + 1) + " :: with parent at x: " + curr.X + " y: " + curr.Y); }
             }
 
             // Check Left ( X - 1 )
-            if (curr.X > 0 && stage.tiles[curr.X - 1, curr.Y].Type == Tile.TileType.Player1 && pathNodes[curr.X - 1, curr.Y] == null)
+            if (curr.X > 0 && stage.tiles[curr.X - 1, curr.Y].Type == playersTileType && pathNodes[curr.X - 1, curr.Y] == null)
             {
                 pathNodes[curr.X - 1, curr.Y] = new PathNode(curr.X - 1, curr.Y, (pathNodes[curr.X, curr.Y].Distance + 1));
                 orderedNodes.Add(pathNodes[curr.X - 1, curr.Y]);
@@ -146,11 +177,11 @@ public class RunController : MonoBehaviour {
                     pathNodes[curr.X - 1, curr.Y].Parent = pathNodes[curr.X, curr.Y];
                 }
 
-                Debug.Log("created a path node at x:" + (curr.X - 1) + " y:" + curr.Y + " :: with parent at x: " + curr.X + " y: " + curr.Y);
+                if (pathDebugging == true) { Debug.Log("created a path node at x:" + (curr.X - 1) + " y:" + curr.Y + " :: with parent at x: " + curr.X + " y: " + curr.Y); }
             }
 
             // Check Right ( X + 1 )
-            if (curr.X < 9 && stage.tiles[curr.X + 1, curr.Y].Type == Tile.TileType.Player1 && pathNodes[curr.X + 1, curr.Y] == null)
+            if (curr.X < 9 && stage.tiles[curr.X + 1, curr.Y].Type == playersTileType && pathNodes[curr.X + 1, curr.Y] == null)
             {
                 pathNodes[curr.X + 1, curr.Y] = new PathNode(curr.X + 1, curr.Y, (pathNodes[curr.X, curr.Y].Distance + 1));
                 orderedNodes.Add(pathNodes[curr.X + 1, curr.Y]);
@@ -160,11 +191,11 @@ public class RunController : MonoBehaviour {
                     pathNodes[curr.X + 1, curr.Y].Parent = pathNodes[curr.X, curr.Y];
                 }
 
-                Debug.Log("created a path node at x:" + (curr.X + 1) + " y:" + curr.Y + " :: with parent at x: " + curr.X + " y: " + curr.Y);
+                if (pathDebugging == true) { Debug.Log("created a path node at x:" + (curr.X + 1) + " y:" + curr.Y + " :: with parent at x: " + curr.X + " y: " + curr.Y); }
             }
 
             // Check Below ( Y - 1 )
-            if (curr.Y > 0 && stage.tiles[curr.X, curr.Y - 1].Type == Tile.TileType.Player1 && pathNodes[curr.X, curr.Y - 1] == null)
+            if (curr.Y > 0 && stage.tiles[curr.X, curr.Y - 1].Type == playersTileType && pathNodes[curr.X, curr.Y - 1] == null)
             {
                 pathNodes[curr.X, curr.Y - 1] = new PathNode(curr.X, curr.Y - 1, (pathNodes[curr.X, curr.Y].Distance + 1));
                 orderedNodes.Add(pathNodes[curr.X, curr.Y - 1]);
@@ -174,42 +205,66 @@ public class RunController : MonoBehaviour {
                     pathNodes[curr.X, curr.Y - 1].Parent = pathNodes[curr.X, curr.Y];
                 }
 
-                Debug.Log("created a path node at x:" + curr.X + " y:" + (curr.Y - 1) + " :: with parent at x: " + curr.X + " y: " + curr.Y);
+                if (pathDebugging == true) { Debug.Log("created a path node at x:" + curr.X + " y:" + (curr.Y - 1) + " :: with parent at x: " + curr.X + " y: " + curr.Y); }
             }
 
-            // Sort path nodes from least to greatest distance
-            orderedNodes.Sort(); 
+
 
             // print out ordered set of nodes (least to most distance)
-            if (orderedNodes.Count > 0)
+            if (pathDebugging == true && orderedNodes.Count > 0)
             {
-                Debug.Log("-- PRINTING ORDERED LIST --");
                 int elementNum = 0;
+                string orderedList = "orderedNodes ";
                 foreach (PathNode p in orderedNodes)
                 {
-                    Debug.Log("orderedNodes Element[" + elementNum + "] x: " + p.X + " y: " + p.Y + " Distance = " + p.Distance);
+                    orderedList += ("Element[" + elementNum + "] x:" + p.X + ", y:" + p.Y + ", Distance = " + p.Distance);
                     elementNum++;
                 }
+                Debug.Log(orderedList);
                 elementNum = 0;
             }
 
+
             // keep the destination updated with the highest reachable Y tile
-            if (orderedNodes[0].Y > destination.Y) {
-                Debug.Log("@@ UPDATING DESTINATION FROM Y=" + destination.Y + " TO Y=" + orderedNodes[0].Y);
-                destination = orderedNodes[0];
+            if (player.playerNumber == 1)
+            {
+                if (orderedNodes[0].Y > destination.Y)
+                {
+                    if (pathDebugging == true) { Debug.Log("@@ UPDATING DESTINATION FROM Y=" + destination.Y + " TO Y=" + orderedNodes[0].Y); }
+                    destination = orderedNodes[0];
+                }
             }
 
+            // keep the destination updated with the lowest reachable Y tile
+            if (player.playerNumber == 2)
+            {
+                if (orderedNodes[0].Y < destination.Y)
+                {
+                    if (pathDebugging == true) { Debug.Log("@@ UPDATING DESTINATION FROM Y=" + destination.Y + " TO Y=" + orderedNodes[0].Y); }
+                    destination = orderedNodes[0];
+                }
+            }
+
+
+
             // remove from list nodes to search through
-            Debug.Log("REMOVING NODE AT X: " + orderedNodes[0].X + " Y: " + orderedNodes[0].Y);
             orderedNodes.RemoveAt(0);
+            if (pathDebugging == true) { Debug.Log("REMOVING FROM orderedNodes, NODE AT X: " + orderedNodes[0].X + " Y: " + orderedNodes[0].Y); }
 
             // set current (the next source tile) to the next item in the list (lowest distance not already searched)
             if (orderedNodes.Count > 0)
             {
-                curr = stage.tiles[orderedNodes[0].X, orderedNodes[0].Y];
-                Debug.Log("CURRENT TILE IS X:" + curr.X + " Y: " + curr.Y);
+                if (pathDebugging == true) { Debug.Log("NEW ORDERNODES[0] EQUALS X: " + orderedNodes[0].X + " Y:" + orderedNodes[0].Y); }
+                curr = pathNodes[orderedNodes[0].X, orderedNodes[0].Y];
+                if (pathDebugging == true) { Debug.Log("CURRENT TILE IS X:" + curr.X + " Y: " + curr.Y); }
+            } else
+            {
+                if (pathDebugging == true) { Debug.Log("Ordered Nodes COUNT = ZERO"); }
             }
         }
+
+        // Sort path nodes from least to greatest distance
+        orderedNodes.Sort();
 
 
         List<PathNode> runPath = new List<PathNode>();
@@ -220,17 +275,24 @@ public class RunController : MonoBehaviour {
             runPath.Insert(0, backTraceNode.Parent);
             backTraceNode = backTraceNode.Parent;
         }
-        p1.Runner.RunPath = runPath;
+        player.Runner.RunPath = runPath;
 
-        int z = 0;
-        foreach(PathNode p in runPath)
+
+        if (pathDebugging == true)
         {
-            Debug.Log("runPath element[" + z + "] coordinates x=" + p.X + " y=" + p.Y);
-            z++;                
+            int z = 0;
+            string fullPath = "";
+            foreach (PathNode p in runPath)
+            {
+                fullPath += (" -> [Element " + z + "]" + " X=" + p.X + ", Y=" + p.Y);
+                // Debug.Log("runPath element[" + z + "] coordinates x=" + p.X + " y=" + p.Y);
+                z++;
+            }
+            Debug.Log("Full Run Path" + fullPath);
+            Debug.Log("@@ Runner Destination is X:" + destination.X + " Y:" + destination.Y);
         }
-        Debug.Log("@@ Runner Destination is X:" + destination.X + " Y:" + destination.Y);
-        
-        
+
+
         // Debug.Log("PathNode+1 -> X:" + pathNodes[curr.X, curr.Y + 1].X + " Y:" + pathNodes[curr.X, curr.Y + 1].Y + " distance:" + pathNodes[curr.X, curr.Y + 1].Distance + " explored:" + pathNodes[curr.X, curr.Y + 1].Explored);
     }
 
@@ -246,7 +308,7 @@ public class RunController : MonoBehaviour {
     Vector3 MoveRunnerObject(GameObject runObj, direction dir)
     {
         audioController.PlayRunningSound();
-        switch(dir)
+        switch (dir)
         {
             case direction.up:
                 runObj.transform.Translate(0, 0, runSpeed * Time.deltaTime);
@@ -264,6 +326,39 @@ public class RunController : MonoBehaviour {
         return runObj.transform.position;
     }
 
+    // see if any of the nodes that have been captured, are in a runner's path, if so re-build runpath
+    // note : comparing 2 lists against each other probably super inefficient 
+    public void CheckIfPathRequiresUpdate(Player player, List<Tile> capturedTiles)
+    {
+        Debug.Log(" >>>>>> Checking if path requires Update <<<<<< ");
+
+        foreach (Tile captured in capturedTiles)
+        {
+            foreach (PathNode currentPath in player.Runner.RunPath)
+            {
+                if ((captured.X == currentPath.X) && (captured.Y == currentPath.Y))
+                {
+                    Debug.Log(" >>>>> PATH REQUIRES UPDATE <<<<");
+                    BuildNodeMap(player);
+                    break;
+                }  
+            }
+        }
+    }
+
+    int findMaxY()
+    {
+        int maxY = 0;
+        for (int i = 0; i < 10; i++)
+        {
+            for (int j = 0; j < 10; j++)
+            {
+                if (stage.tiles[i, j].Type == Tile.TileType.Player1) 
+                    if (stage.tiles[i, j].Y > maxY) { maxY = stage.tiles[i, j].Y; }
+            }
+        }
+        return maxY;
+    }
 
     void LoadAssets() // temporary solution to visually indicate runner owner [remove later]
     { 

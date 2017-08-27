@@ -44,13 +44,11 @@ public class GameController : MonoBehaviour {
 				Tile.changedTiles.Add(stage.tiles[i, j]);
 			}
 		}
-		UpdateTiles ();
+		UpdateTileAppearance ();
 	}
 
-    // 
-	void UpdateTiles () {
+	void UpdateTileAppearance () {
 		foreach (Tile t in Tile.changedTiles) {
-			// Debug.Log ("running case for tile at x=" + t.X + " and y=" + t.Y);
 			switch (t.Type) {
 			case Tile.TileType.Void:
 				if (t.X == player1.selectedX && t.Y == player1.selectedY) {
@@ -84,7 +82,7 @@ public class GameController : MonoBehaviour {
 			// Tile.changedTiles.Remove (t);
 		}
 		Tile.changedTiles.Clear (); // clear the list
-	}
+    }
 		
     // Update the player actions on every frame
 	void Update () {
@@ -92,22 +90,21 @@ public class GameController : MonoBehaviour {
 	}
 
 	// move the given player in the given direction, if their position is still within bounds of play area
-	void MovePlayer(Player p, direction d) { 
+	void MovePlayer(Player player, direction d) { 
 		switch (d) {
 		case direction.up:
-			if (p.selectedY < DIMENSIONS-1) p.selectedY++;
+			if (player.selectedY < DIMENSIONS-1) player.selectedY++;
 			break;
 		case direction.down:
-			if (p.selectedY > 0) p.selectedY--;
+			if (player.selectedY > 0) player.selectedY--;
 			break;
 		case direction.left:
-			if (p.selectedX > 0) p.selectedX--;
+			if (player.selectedX > 0) player.selectedX--;
 			break;
 		case direction.right:
-			if (p.selectedX < DIMENSIONS-1) p.selectedX++;
+			if (player.selectedX < DIMENSIONS-1) player.selectedX++;
 			break;
 		}
-        // Debug.Log("Player" + p.playerNumber + " positioned at x: " + p.selectedX + ", y: " + p.selectedY);
 	}
 
 	void PlayerUpdate() { 
@@ -133,12 +130,12 @@ public class GameController : MonoBehaviour {
 				Tile.changedTiles.Add (stage.tiles [previousX, previousY]);
 			
 			// graphically update the tiles in the list
-			UpdateTiles ();
+			UpdateTileAppearance ();
 		}
 			
 		if (Input.GetKeyDown ("space")) {
 			if (stage.tiles [player1.selectedX, player1.selectedY].Type == Tile.TileType.Void) {
-				CaptureTile (1, player1.selectedX, player1.selectedY);
+				CaptureTile (player1, player1.selectedX, player1.selectedY);
 			}
 		}
 
@@ -162,22 +159,20 @@ public class GameController : MonoBehaviour {
 				Tile.changedTiles.Add (stage.tiles [previousX, previousY]);
 
 			// graphically update the tiles in the list
-            UpdateTiles ();
+            UpdateTileAppearance ();
 		}
 
 		if (Input.GetKeyDown ("enter")) {
 			if (stage.tiles [player2.selectedX, player2.selectedY].Type == Tile.TileType.Void) {
-				CaptureTile (2, player2.selectedX, player2.selectedY);
+				CaptureTile (player2, player2.selectedX, player2.selectedY);
 			}
         }
 	}
 
 
-
-
 	// call this function when player takes a tile: pass in the player Number(1/2), and co-ordinates of tile to capture
 	// runnerUpdate() is called when a tile is updated
-	public void CaptureTile (int playerNum, int x, int y) {
+	public void CaptureTile (Player player, int x, int y) {
 
 		audioController.PlayCaptureSoundEffect ();
 
@@ -187,145 +182,111 @@ public class GameController : MonoBehaviour {
 		// collection of tiles to be switched
 		List<Tile> capturedTiles = new List<Tile> (); // refreshes after searching each branch
 
-		if (playerNum == 1) {
-			stage.tiles [x, y].Type = Tile.TileType.Player1;
+        Tile.TileType playersTileType = player.GetTileType();
+        Tile.TileType opponentTileType = Tile.TileType.Void;
 
-			tempX = x;
-			while (tempX < DIMENSIONS - 1 && (stage.tiles [tempX + 1, y].Type == Tile.TileType.Player2)) {
-				capturedTiles.Add (stage.tiles [tempX + 1, y]);
+        Player opponent = null;
+        if (player == player1) { opponent = player2; }
+        if (player == player2) { opponent = player1; }
+        opponentTileType = opponent.GetTileType();
 
-				tempX++;
-				// if we have captured tiles and reach a friendly tile, convert the row (move to a bigger list)
-				if (capturedTiles.Count > 0 && stage.tiles [tempX + 1, y].Type == Tile.TileType.Player1) {
-					AddCapturedToChanged (1, capturedTiles);
-					// if the next iteration is out of bounds or tile has no owner, kill this branch
-				} else if ((tempX + 1 > DIMENSIONS) || stage.tiles [tempX + 1, y].Type == Tile.TileType.Void) {
-					capturedTiles.Clear ();
-				} 
-			} 
+        stage.tiles [x, y].Type = playersTileType;
+        
+        // check right
+		tempX = x;
+		while (tempX < DIMENSIONS - 1 && (stage.tiles [tempX + 1, y].Type == opponentTileType)) {
+			capturedTiles.Add (stage.tiles [tempX + 1, y]);
+            Debug.Log("Added tile [ x:" + (tempX + 1) + ", y:" + y + "] to right branch.");
 
-			// check left branch
-			tempX = x;   //reset search params
-			while (tempX >= 1 && (stage.tiles [tempX - 1, y].Type == Tile.TileType.Player2)) {
-				capturedTiles.Add (stage.tiles [tempX - 1, y]);
+            tempX++;
+			// if we have captured tiles and reach a friendly tile, convert the row (move to a bigger list)
+			if ((stage.tiles[tempX + 1, y] != null) && (stage.tiles [tempX + 1, y].Type == playersTileType)) {
+				AddCapturedToChanged (player, opponent, capturedTiles); 
 
-				tempX--;
-				if (capturedTiles.Count > 0 && stage.tiles [tempX - 1, y].Type == Tile.TileType.Player1) {
-					AddCapturedToChanged (1, capturedTiles);
-				} else if ((tempX < 0) || stage.tiles [tempX - 1, y].Type == Tile.TileType.Void) {
-					capturedTiles.Clear ();
-				} 
-			} 
+			// if the next iteration is out of bounds or tile has no owner, clear this branch
+			} else if ((tempX + 1 > DIMENSIONS) || stage.tiles [tempX + 1, y].Type == Tile.TileType.Void) {
+				capturedTiles.Clear ();
+                Debug.Log("Cleared capturedTiles in right branch");
+                break;
+            } 
+		} 
 
-			// check up
-			tempY = y;
-			while (tempY < DIMENSIONS - 1 && (stage.tiles [x, tempY + 1].Type == Tile.TileType.Player2)) {
-				capturedTiles.Add (stage.tiles [x, tempY + 1]);
+		// check left 
+		tempX = x;  
+		while (tempX >= 1 && (stage.tiles [tempX - 1, y].Type == opponentTileType)) {
+			capturedTiles.Add (stage.tiles [tempX - 1, y]);
+            Debug.Log("Added tile [ x:" + (tempX - 1) + ", y:" + y + "] to right branch.");
 
-				tempY++;
-				if (capturedTiles.Count > 0 && stage.tiles [x, tempY + 1].Type == Tile.TileType.Player1) {
-					AddCapturedToChanged (1, capturedTiles);
-				} else if ((tempY > DIMENSIONS - 1) || stage.tiles [x, tempY + 1].Type == Tile.TileType.Void) { 
-					capturedTiles.Clear (); 
-				} 
-			}
+            tempX--;
+			if ((stage.tiles[tempX - 1, y] != null) && stage.tiles [tempX - 1, y].Type == playersTileType) {
+				AddCapturedToChanged (player, opponent, capturedTiles);
 
-			//check down
-			tempY = y;
-			while (tempY >= 1 && (stage.tiles [x, tempY - 1].Type == Tile.TileType.Player2)) {
-				capturedTiles.Add (stage.tiles [x, tempY - 1]);
+            } else if ((tempX < 0) || stage.tiles [tempX - 1, y].Type == Tile.TileType.Void) {
+				capturedTiles.Clear ();
+                Debug.Log("Cleared capturedTiles in down branch");
+                break;
+            } 
+		} 
 
-				tempY--;
-				if (capturedTiles.Count > 0 && stage.tiles [x, tempY - 1].Type == Tile.TileType.Player1) {
-					AddCapturedToChanged (1, capturedTiles);
-				} else if ((tempY < 0) || stage.tiles [x, tempY - 1].Type == Tile.TileType.Void) {
-					capturedTiles.Clear ();
-				} 
-			}
-		
-			//////////////////////
-			////// Player 2 //////
-			//////////////////////
+		// check up
+		tempY = y;
+		while (tempY < DIMENSIONS - 1 && (stage.tiles [x, tempY + 1].Type == opponentTileType)) {
+			capturedTiles.Add (stage.tiles [x, tempY + 1]);
+            Debug.Log("Added tile [ x:" + tempX + ", y:" + (tempY + 1) + "] to right branch.");
 
-		} else if (playerNum == 2) {
-			stage.tiles [x, y].Type = Tile.TileType.Player2;
-			capturedTiles.Clear ();
+            tempY++;
+			if ((stage.tiles[x, tempY + 1] != null) && stage.tiles [x, tempY + 1].Type == playersTileType) {
+				AddCapturedToChanged (player, opponent, capturedTiles);
 
-			tempX = x;
-			while (tempX < DIMENSIONS - 1 && (stage.tiles [tempX + 1, y].Type == Tile.TileType.Player1)) {
-				capturedTiles.Add (stage.tiles [tempX + 1, y]);
-
-				tempX++;
-				if (capturedTiles.Count > 0 && stage.tiles [tempX + 1, y].Type == Tile.TileType.Player2) {
-					AddCapturedToChanged (2, capturedTiles);
-				} else if ((tempX +1 > DIMENSIONS) || stage.tiles [tempX + 1, y].Type == Tile.TileType.Void) {
-					capturedTiles.Clear ();
-				}
-			}
-				
-			tempX = x;   //reset search params
-			while (tempX > 0 && (stage.tiles [tempX - 1, y].Type == Tile.TileType.Player1)) {
-				capturedTiles.Add (stage.tiles [tempX - 1, y]);
-
-				tempX--;
-				if (capturedTiles.Count > 0 && stage.tiles [tempX - 1, y].Type == Tile.TileType.Player2) {
-					AddCapturedToChanged (2, capturedTiles);
-				} else if ((tempX < 0) || stage.tiles [tempX - 1, y].Type == Tile.TileType.Void) {
-					capturedTiles.Clear ();
-				} 
-			}
-				
-			tempY = y;
-			while (tempY < DIMENSIONS - 1 && (stage.tiles [x, tempY + 1].Type == Tile.TileType.Player1)) {
-				capturedTiles.Add (stage.tiles [x, tempY + 1]);
-
-				tempY++;
-				if (capturedTiles.Count > 0 && stage.tiles [x, tempY + 1].Type == Tile.TileType.Player2) {
-					AddCapturedToChanged (2, capturedTiles);
-				} else if ((tempY + 1 > DIMENSIONS) || stage.tiles [x, tempY + 1].Type == Tile.TileType.Void) {
-					capturedTiles.Clear ();
-				} 
-			}
-				
-			tempY = y;
-			while ((tempY > 0) && (stage.tiles [x, tempY - 1].Type == Tile.TileType.Player1)) {
-				capturedTiles.Add (stage.tiles [x, tempY - 1]);
-                
-				tempY--;
-				if (capturedTiles.Count > 0 && stage.tiles [x, tempY - 1].Type == Tile.TileType.Player2) {
-					AddCapturedToChanged (2, capturedTiles);
-				} else if ((tempY < 0) || (stage.tiles [x, tempY - 1].Type == Tile.TileType.Void)) {
-					capturedTiles.Clear ();
-				} 
-			}
+            } else if ((tempY > DIMENSIONS - 1) || stage.tiles [x, tempY + 1].Type == Tile.TileType.Void) { 
+				capturedTiles.Clear ();
+                Debug.Log("Cleared capturedTiles in up branch");
+                break;
+            } 
 		}
-		// update all the tiles that have been changed
-		UpdateTiles ();
 
-	}
+		// check down
+		tempY = y;
+		while (tempY >= 1 && (stage.tiles [x, tempY - 1].Type == opponentTileType)) {
+			capturedTiles.Add (stage.tiles [x, tempY - 1]);
+            Debug.Log("Added tile [ x:" + tempX + ", y:" + (tempY - 1) + "] to right branch.");
+
+            tempY--;
+			if ((stage.tiles[x, tempY - 1] != null) && stage.tiles [x, tempY - 1].Type == playersTileType) {
+				AddCapturedToChanged (player, opponent, capturedTiles);
+
+            } else if ((tempY < 0) || stage.tiles [x, tempY - 1].Type == Tile.TileType.Void) {
+				capturedTiles.Clear ();
+                Debug.Log("Cleared capturedTiles in left branch");
+                break;
+            } 
+		}
+
+		// update all the tiles that have been changed
+		UpdateTileAppearance ();
+
+        runController.BuildNodeMap(player);
+    }
 	
 
 	// function to add the list of captured tiles generated by each branch, to a list of all tiles to be updated
-	public void AddCapturedToChanged(int playerNum, List<Tile> capturedTiles) {
+	public void AddCapturedToChanged(Player player, Player opponent, List<Tile> capturedTiles) {
 		// Debug.Log ("capturedTiles capacity [number of tiles to capture] is : " + capturedTiles.Count);
-
-
 
         if (capturedTiles.Count > 0) {
 			audioController.PlaySwapSoundEffect (); 
 
-			foreach (Tile t in capturedTiles) {
-				// Debug.Log ("this captured tile X=" + t.X + ", Y=" + t.Y);
-				if (playerNum == 1) t.Type = Tile.TileType.Player1;
-
-
-				if (playerNum == 2) t.Type = Tile.TileType.Player2;
-				Tile.changedTiles.Add (t);
+			foreach (Tile tile in capturedTiles) {
+                // Debug.Log ("this captured tile X=" + t.X + ", Y=" + t.Y);
+                tile.Type = player.GetTileType();
+				Tile.changedTiles.Add (tile);
 			}
-			capturedTiles.Clear();
 
-		}
-        runController.BuildNodeMap();
+            // check if the opponent's runner needs to update their runPath
+            runController.CheckIfPathRequiresUpdate(opponent, capturedTiles);
+
+            capturedTiles.Clear();
+        }   
     }
 
 	void LoadAssets() { // Load Prefabs/Materials from Resources folder

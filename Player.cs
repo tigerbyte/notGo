@@ -47,6 +47,11 @@ public class Player {
         set { canPlay = value; }
     }
 
+    public Tile.TileType GetTileType() {
+        if (playerNumber == 1) { return Tile.TileType.Player1; }
+        else { return Tile.TileType.Player2; }
+    }
+
     public Runner Runner {
         get { return runner; }
         set { runner = value;  }
