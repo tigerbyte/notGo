@@ -4,7 +4,8 @@ Currently Done:
 ---------------
 Game Layout<br>
 Capture Logic<br>
-Some Sounds
+Some Sounds<br>
+Rating Script
 
 In Progress:
 -------------
