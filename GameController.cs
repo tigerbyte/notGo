@@ -19,10 +19,10 @@ public class GameController : MonoBehaviour {
         LoadAssets(); // Load Prefabs/Materials from Resources folder
         audioController = (AudioController) GameObject.FindObjectOfType(typeof(AudioController));
         runController = (RunController) GameObject.FindObjectOfType(typeof(RunController));
-        player1 = new Player (1);
-		player2 = new Player (2);
         stage = new Stage (DIMENSIONS); // instantiate a square stage with height/width of dimensions
-		CreateTiles (); // create tile game objects to associate with data structure
+        player1 = new Player(1, stage.Dimensions);
+        player2 = new Player(2, stage.Dimensions);
+        CreateTiles (); // create tile game objects to associate with data structure
     }
 
     // Instantiate tile GameObjects, and assign them to the 2d Tile array data-structure 
@@ -93,7 +93,7 @@ public class GameController : MonoBehaviour {
 	void MovePlayer(Player player, direction d) { 
 		switch (d) {
 		case direction.up:
-			if (player.selectedY < DIMENSIONS-1) player.selectedY++;
+			if (player.selectedY < stage.Dimensions - 1) player.selectedY++;
 			break;
 		case direction.down:
 			if (player.selectedY > 0) player.selectedY--;
@@ -102,7 +102,7 @@ public class GameController : MonoBehaviour {
 			if (player.selectedX > 0) player.selectedX--;
 			break;
 		case direction.right:
-			if (player.selectedX < DIMENSIONS-1) player.selectedX++;
+			if (player.selectedX < stage.Dimensions - 1) player.selectedX++;
 			break;
 		}
 	}

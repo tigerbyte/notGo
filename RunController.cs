@@ -32,81 +32,37 @@ public class RunController : MonoBehaviour {
     }
 
     void Update() {
-        // check if players have a runner on the board, if not, check if they own a tile in their respective first row for spawning
-        checkP1RunnerStatus();
-        checkP2RunnerStatus();
+        updateRunner(p1);
+        updateRunner(p2);
     }
 
-    void checkP1RunnerStatus() {
-        // possible TODO: use shortest path to spawn runner in the most optimal starting position
-        // (currently spawns in the first available position found)
-
-        if (p1.Runner == null) // if p1 doesn't have a runner yet then spawn one
+    void updateRunner(Player player)
+    {
+        // if no runner exists, instantiate the runner, 
+        // toDo : instantiate runner earlier,  maybe offscreen, instead of constantly checking if it exists
+        if (player.Runner == null)
         {
-            for (int i = 0; i < gameController.DIMENSIONS; i++)
+            for (int i = 0; i < stage.Dimensions; i++)
             {
-                if (gameController.stage.tiles[i, 0].Type == Tile.TileType.Player1)
+                if (stage.tiles[i, player.startingRow].Type == player.GetTileType())
                 {
-                    // temporarily store the tile that will be used for runner spawning position
-                    Tile spawnTile = gameController.stage.tiles[i, 0];
+                    Vector2 runnerSpawnPosition = new Vector2(stage.tiles[i, player.startingRow].X, stage.tiles[i, player.startingRow].Y);
+                    player.constructRunner(runnerSpawnPosition);
+                    player.Runner.GameObj = Instantiate(RunnerObject, new Vector3(runnerSpawnPosition.x, 1, runnerSpawnPosition.y), Quaternion.identity);
 
-                    // construct the data structure of the runner for logic operations
-                    p1.constructRunner(spawnTile.X, spawnTile.Y);
-
-                    // instantiate the gameObject corresponding to the newly spawned runner
-                    p1.Runner.gameObj = Instantiate(RunnerObject, new Vector3(spawnTile.X, 1, spawnTile.Y), Quaternion.identity);
-                    p1.Runner.gameObj.GetComponent<Renderer>().material = blueMat; // temporary solution to visually indicate runner owner [remove later]
+                    if (player == p1) { player.Runner.gameObj.GetComponent<Renderer>().material = blueMat; }
+                    if (player == p2) { player.Runner.gameObj.GetComponent<Renderer>().material = redMat; }
                 }
             }
         }
-        // if a path exists and there are still nodes in it
-        else if (p1.Runner.RunPath != null && p1.Runner.RunPath.Count > 1)
+        else if (player.Runner.RunPath != null && player.Runner.RunPath.Count > 1)
         {
-            // TO DO :: currently allows diagonal movement ( two ifs satisfied simultaneously ), Limit to unidirectional movement
+            if (player.Runner.gameObj.transform.position.z < player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner.gameObj, direction.up); }
+            if (player.Runner.gameObj.transform.position.z > player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner.gameObj, direction.down); }
+            if (player.Runner.gameObj.transform.position.x > player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner.gameObj, direction.left); }
+            if (player.Runner.gameObj.transform.position.x < player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner.gameObj, direction.right); }
 
-            // Debug.Log("p1RunnerObject.transform.position.z = " + p1.Runner.gameObj.transform.position.z + " p1.Runner.RunPath[1].Y = " + p1.Runner.RunPath[1].Y);
-            if (p1.Runner.gameObj.transform.position.z < p1.Runner.RunPath[1].Y) { MoveRunnerObject(p1.Runner.gameObj, direction.up); }
-            if (p1.Runner.gameObj.transform.position.z > p1.Runner.RunPath[1].Y) { MoveRunnerObject(p1.Runner.gameObj, direction.down); }
-            if (p1.Runner.gameObj.transform.position.x > p1.Runner.RunPath[1].X) { MoveRunnerObject(p1.Runner.gameObj, direction.left); }
-            if (p1.Runner.gameObj.transform.position.x < p1.Runner.RunPath[1].X) { MoveRunnerObject(p1.Runner.gameObj, direction.right); }
-
-            // check if we've reached a new tile, for updates
-            p1.Runner.ComparePositionToPath();
-        }
-    }
-
-    void checkP2RunnerStatus() {
-        if (p2.Runner == null)
-        {
-            for (int i = 9; i > 0; i--)
-            {
-                if (gameController.stage.tiles[i, 9].Type == Tile.TileType.Player2)
-                {
-                    // temporarily store the tile that will be used for runner spawning position
-                    Tile spawnTile = gameController.stage.tiles[i, 9];
-
-                    // construct the data structure of the runner for logic operations
-                    p2.constructRunner(spawnTile.X, spawnTile.Y);
-
-                    // instantiate the gameObject corresponding to the newly spawned runner
-                    p2.Runner.gameObj = Instantiate(RunnerObject, new Vector3(spawnTile.X, 1, spawnTile.Y), Quaternion.identity);
-                    p2.Runner.gameObj.GetComponent<Renderer>().material = redMat; // temporary solution to visually indicate runner owner [remove later]
-                }
-            }
-        }
-        // if a path exists and there are still nodes in it
-        else if (p2.Runner.RunPath != null && p2.Runner.RunPath.Count > 1)
-        {
-            // TO DO :: currently allows diagonal movement ( two ifs satisfied simultaneously ), Limit to unidirectional movement
-
-            // Debug.Log("p1RunnerObject.transform.position.z = " + p1.Runner.gameObj.transform.position.z + " p1.Runner.RunPath[1].Y = " + p1.Runner.RunPath[1].Y);
-            if (p2.Runner.gameObj.transform.position.z < p2.Runner.RunPath[1].Y) { MoveRunnerObject(p2.Runner.gameObj, direction.up); }
-            if (p2.Runner.gameObj.transform.position.z > p2.Runner.RunPath[1].Y) { MoveRunnerObject(p2.Runner.gameObj, direction.down); }
-            if (p2.Runner.gameObj.transform.position.x > p2.Runner.RunPath[1].X) { MoveRunnerObject(p2.Runner.gameObj, direction.left); }
-            if (p2.Runner.gameObj.transform.position.x < p2.Runner.RunPath[1].X) { MoveRunnerObject(p2.Runner.gameObj, direction.right); }
-
-            // check if we've reached a new tile, for updates
-            p2.Runner.ComparePositionToPath();
+            player.Runner.ComparePositionToPath();
         }
     }
 
@@ -330,18 +286,20 @@ public class RunController : MonoBehaviour {
     // note : comparing 2 lists against each other probably super inefficient 
     public void CheckIfPathRequiresUpdate(Player player, List<Tile> capturedTiles)
     {
-        Debug.Log(" >>>>>> Checking if path requires Update <<<<<< ");
+        if (player.Runner != null) {
+            Debug.Log(" >>>>>> Checking if path requires Update <<<<<< ");
 
-        foreach (Tile captured in capturedTiles)
-        {
-            foreach (PathNode currentPath in player.Runner.RunPath)
+            foreach (Tile captured in capturedTiles)
             {
-                if ((captured.X == currentPath.X) && (captured.Y == currentPath.Y))
+                foreach (PathNode currentPath in player.Runner.RunPath)
                 {
-                    Debug.Log(" >>>>> PATH REQUIRES UPDATE <<<<");
-                    BuildNodeMap(player);
-                    break;
-                }  
+                    if ((captured.X == currentPath.X) && (captured.Y == currentPath.Y))
+                    {
+                        Debug.Log(" >>>>> PATH REQUIRES UPDATE <<<<");
+                        BuildNodeMap(player);
+                        break;
+                    }
+                }
             }
         }
     }
