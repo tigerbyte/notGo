@@ -49,39 +49,43 @@ public class GameController : MonoBehaviour {
 	}
 
 	void UpdateTileAppearance () {
-		foreach (Tile tile in Tile.changedTiles) {
-			switch (tile.Type) {
+        Tile P1SelectedTile = stage.tiles[p1.selectedX, p1.selectedY];
+        Tile P2SelectedTile = stage.tiles[p2.selectedX, p2.selectedY];
+
+        foreach (Tile tile in Tile.changedTiles) {
+            Renderer renderer = tile.Tile_gameObj.GetComponent<Renderer>();
+
+            switch (tile.Type) {
 			case Tile.TileType.Void:
-				if (tile.X == p1.selectedX && tile.Y == p1.selectedY) {
-					tile.Tile_gameObj.GetComponent<Renderer> ().material = voidBlueSelected; 
-				} else if (tile.X == p2.selectedX && tile.Y == p2.selectedY) {
-					tile.Tile_gameObj.GetComponent<Renderer> ().material = voidRedSelected;
+				if (tile == P1SelectedTile) {
+					renderer.material = voidBlueSelected; 
+				} else if (tile == P2SelectedTile) {
+                    renderer.material = voidRedSelected;
 				} else {
-					tile.Tile_gameObj.GetComponent<Renderer> ().material = voidMat;
+                    renderer.material = voidMat;
 				}
 				break;
 			case Tile.TileType.Player1:
-				if (tile.X == p1.selectedX && tile.Y == p1.selectedY) {
-					tile.Tile_gameObj.GetComponent<Renderer> ().material = blueOwnedBlueSelected; 
-				} else if (tile.X == p2.selectedX && tile.Y == p2.selectedY) {
-					tile.Tile_gameObj.GetComponent<Renderer> ().material = blueOwnedRedSelected;
+				if (tile == P1SelectedTile) {
+                    renderer.material = blueOwnedBlueSelected; 
+				} else if (tile == P2SelectedTile) {
+                    renderer.material = blueOwnedRedSelected;
 				} else {
-					tile.Tile_gameObj.GetComponent<Renderer> ().material = blueMat;
+                    renderer.material = blueMat;
 				}
 				break;
 			case Tile.TileType.Player2:
-				if (tile.X == p1.selectedX && tile.Y == p1.selectedY) {
-					tile.Tile_gameObj.GetComponent<Renderer> ().material = redOwnedRedSelected; 
-				} else if (tile.X == p2.selectedX && tile.Y == p2.selectedY) {
-					tile.Tile_gameObj.GetComponent<Renderer> ().material = redOwnedBlueSelected;
+				if (tile == P1SelectedTile) {
+                    renderer.material = redOwnedRedSelected; 
+				} else if (tile == P2SelectedTile) {
+                    renderer.material = redOwnedBlueSelected;
 				} else {
-					tile.Tile_gameObj.GetComponent<Renderer> ().material = redMat;
+                    renderer.material = redMat;
 				}
 				break;
 			}
-			// Tile.changedTiles.Remove (t);
 		}
-		Tile.changedTiles.Clear (); // clear the list
+		Tile.changedTiles.Clear ();
     }
 		
     // Update the player actions on every frame
