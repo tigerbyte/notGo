@@ -4,18 +4,22 @@ Currently Done:
 ---------------
 Game Layout<br>
 Capture Logic<br>
-Some Sounds<br>
-Rating Script
+Basic SFX<br>
+Rating Script<br>
+Basic Pathing<br>
+Energy Bars<br>
 
 In Progress:
 -------------
-Refactoring (gameController)<br>
-Pathing
+Refactoring<br>
+Improved pathing and runner logic<br>
+Death & Victory conditions<br>
+Create tables & databases
 
 To Do:
 -----------------
-Timer for tiles<br>
-Toggle for special Tile<br>
+Special abilities<br>
 Special Tile integration<br>
-Score Logic<br>
-Networking - basic transfer of board state
+Networking - basic transfer of board state<br>
+Mobile deployment - Testing, workflow<br>
+Tile 'reinforcement'
