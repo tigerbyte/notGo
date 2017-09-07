@@ -8,9 +8,7 @@ public class Player {
     public int selectedY;
     public Runner runner;
     public int startingRow;
-
-    float tileCooldown = 3.0f;
-    bool canPlay = true; // can play a tile (it's not on cooldown)
+    float energy;
 
     public Player(int playerNumber, int dimensions) {
 
@@ -30,19 +28,42 @@ public class Player {
         }
     }
 
-    public float TileCooldown {
-        get { return tileCooldown; }
-        set { tileCooldown = value; }
+    public float Energy
+    {
+        get { return this.energy; }
+        set { this.energy = value; }
     }
 
-    public bool CanPlay {
-        get { return canPlay; }
-        set { canPlay = value; }
+    public void ReduceEnergy(float amount)
+    {
+        Energy = Energy - amount;
+    }
+    
+    public Tile.TileType TileType {
+        get
+        {
+            if (playerNumber == 1) { return Tile.TileType.Player1; }
+            else { return Tile.TileType.Player2; }
+        }
     }
 
-    public Tile.TileType GetTileType() {
-        if (playerNumber == 1) { return Tile.TileType.Player1; }
-        else { return Tile.TileType.Player2; }
+    public void Move(Stage stage, Direction direction)
+    {
+        switch (direction)
+        {
+            case Direction.up:
+                if (this.selectedY < stage.Dimensions - 1) this.selectedY++;
+                break;
+            case Direction.down:
+                if (this.selectedY > 0) this.selectedY--;
+                break;
+            case Direction.left:
+                if (this.selectedX > 0) this.selectedX--;
+                break;
+            case Direction.right:
+                if (this.selectedX < stage.Dimensions - 1) this.selectedX++;
+                break;
+        }
     }
 
     public Runner Runner {

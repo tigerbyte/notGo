@@ -14,36 +14,46 @@ public class Tile {
 
 	public GameObject tile_gameObj;
 
-	public int X {
-		get { return x; }
-	}
-
-	public int Y {
-		get { return y; }
-	}
-
-	public TileType Type {
-		get { return type;  }
-		set { 
+	public int X { get { return x; } }
+	public int Y { get { return y; } }
+	
+	public TileType Type
+    {
+		get { return type; }
+		set
+        { 
 			typeHasChanged = true;
 			changedTiles.Add (this); // add this to list of tiles that have had their states changed
 			type = value; 
 		}
-	}		
+	}
 
-	public Tile(int x, int y) {
+    public TileType OpponentType
+    {
+        get
+        {
+            if (Type == TileType.Player1) { return TileType.Player2; }
+            else if (Type == TileType.Player2) { return TileType.Player1; }
+            else { return TileType.Void; }
+        }
+    }
+
+    public Tile(int x, int y)
+    {
 		this.x = x;
 		this.y = y;
 		type = TileType.Void;
 	}
 
-	public Tile(int x, int y, TileType type) {
+	public Tile(int x, int y, TileType type)
+    {
 		this.x = x;
 		this.y = y;
 		this.type = type;
 	}
 
-	public GameObject Tile_gameObj {
+	public GameObject Tile_gameObj
+    {
 		get { return tile_gameObj; }
 		set { tile_gameObj = value; }
 	}

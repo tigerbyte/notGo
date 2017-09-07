@@ -20,11 +20,11 @@ public class RunController : MonoBehaviour {
 
     void Start() {
         // get a reference to the GameController, which will allow us to access Players, runners, etc.
-        gameController = (GameController)GameObject.FindObjectOfType(typeof(GameController));
-        audioController = (AudioController)GameObject.FindObjectOfType(typeof(AudioController));
+        gameController = (GameController)FindObjectOfType(typeof(GameController));
+        audioController = (AudioController)FindObjectOfType(typeof(AudioController));
         stage = gameController.stage;
-        p1 = gameController.player1;
-        p2 = gameController.player2;
+        p1 = gameController.p1;
+        p2 = gameController.p2;
 
         RunnerObject = (GameObject)Resources.Load("Prefabs/Runner");
 
@@ -39,28 +39,28 @@ public class RunController : MonoBehaviour {
     void updateRunner(Player player)
     {
         // if no runner exists, instantiate the runner, 
-        // toDo : instantiate runner earlier,  maybe offscreen, instead of constantly checking if it exists
+        // toDo : instantiate runner earlier,  maybe offscreen, instead of checking on its existence every frame
         if (player.Runner == null)
         {
             for (int i = 0; i < stage.Dimensions; i++)
             {
-                if (stage.tiles[i, player.startingRow].Type == player.GetTileType())
+                if (stage.tiles[i, player.startingRow].Type == player.TileType)
                 {
                     Vector2 runnerSpawnPosition = new Vector2(stage.tiles[i, player.startingRow].X, stage.tiles[i, player.startingRow].Y);
                     player.constructRunner(runnerSpawnPosition);
                     player.Runner.GameObj = Instantiate(RunnerObject, new Vector3(runnerSpawnPosition.x, 1, runnerSpawnPosition.y), Quaternion.identity);
 
-                    if (player == p1) { player.Runner.gameObj.GetComponent<Renderer>().material = blueMat; }
-                    if (player == p2) { player.Runner.gameObj.GetComponent<Renderer>().material = redMat; }
+                    if (player == p1) { player.Runner.GameObj.GetComponent<Renderer>().material = blueMat; }
+                    if (player == p2) { player.Runner.GameObj.GetComponent<Renderer>().material = redMat; }
                 }
             }
         }
         else if (player.Runner.RunPath != null && player.Runner.RunPath.Count > 1)
         {
-            if (player.Runner.gameObj.transform.position.z < player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner.gameObj, direction.up); }
-            if (player.Runner.gameObj.transform.position.z > player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner.gameObj, direction.down); }
-            if (player.Runner.gameObj.transform.position.x > player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner.gameObj, direction.left); }
-            if (player.Runner.gameObj.transform.position.x < player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner.gameObj, direction.right); }
+            if (player.Runner.GameObj.transform.position.z < player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner, direction.up); }
+            if (player.Runner.GameObj.transform.position.z > player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner, direction.down); }
+            if (player.Runner.GameObj.transform.position.x > player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner, direction.left); }
+            if (player.Runner.GameObj.transform.position.x < player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner, direction.right); }
 
             player.Runner.ComparePositionToPath();
         }
@@ -78,17 +78,12 @@ public class RunController : MonoBehaviour {
         // seperate into different functions
         if (player.Runner == null) { return; }
 
-        if (pathDebugging == true) {
-            Debug.Log("Player 1 Max Y is = " + findMaxY());
-            Debug.Log("/// building node map ///");
-        }
-
-        PathNode[,] pathNodes = new PathNode[10, 10];
+        if (pathDebugging == true) { Debug.Log("/// building node map ///"); }
+        
+        PathNode[,] pathNodes = new PathNode[stage.Dimensions, stage.Dimensions];
         // current tile being analyzed, starts at runner position but expands out by lowest distance using djikstra
         pathNodes[player.Runner.X, player.Runner.Y] = new PathNode(player.Runner.X, player.Runner.Y, 0);
         PathNode curr = pathNodes[player.Runner.X, player.Runner.Y];
-
-        Tile.TileType playersTileType = player.GetTileType();
 
         // clear any leftovers (from previous use) in the ordered list, just in case
         // the list is ordered by nodes with the lowest distance from our tile being analyzed, and gets cleared out as we expand out further in our search
@@ -104,12 +99,15 @@ public class RunController : MonoBehaviour {
 
         while (orderedNodes.Count > 0)
         {
+            // TO DO : find a way to reduce duplicate code ( different block for each direction )
+            Tile target; // the tile we're targetting to run checks on
+
             // next 4 blocks are basically the same thing 4 times , one for each direction : up / left / right / down
             // if we find tiles with friendly type, create a corresponding pathNode
             // add it to the list of orderedNodes, keeping track of its distance from the original source, and its parent so we can build a final path
 
             // Check Above ( Y + 1 )
-            if (curr.Y < 9 && stage.tiles[curr.X, curr.Y + 1].Type == playersTileType && pathNodes[curr.X, curr.Y + 1] == null)
+            if (curr.Y < 9 && stage.tiles[curr.X, curr.Y + 1].Type == player.TileType && pathNodes[curr.X, curr.Y + 1] == null)
             {
                 pathNodes[curr.X, curr.Y + 1] = new PathNode(curr.X, curr.Y + 1, (pathNodes[curr.X, curr.Y].Distance + 1));
                 orderedNodes.Add(pathNodes[curr.X, curr.Y + 1]);
@@ -123,7 +121,7 @@ public class RunController : MonoBehaviour {
             }
 
             // Check Left ( X - 1 )
-            if (curr.X > 0 && stage.tiles[curr.X - 1, curr.Y].Type == playersTileType && pathNodes[curr.X - 1, curr.Y] == null)
+            if (curr.X > 0 && stage.tiles[curr.X - 1, curr.Y].Type == player.TileType && pathNodes[curr.X - 1, curr.Y] == null)
             {
                 pathNodes[curr.X - 1, curr.Y] = new PathNode(curr.X - 1, curr.Y, (pathNodes[curr.X, curr.Y].Distance + 1));
                 orderedNodes.Add(pathNodes[curr.X - 1, curr.Y]);
@@ -137,7 +135,7 @@ public class RunController : MonoBehaviour {
             }
 
             // Check Right ( X + 1 )
-            if (curr.X < 9 && stage.tiles[curr.X + 1, curr.Y].Type == playersTileType && pathNodes[curr.X + 1, curr.Y] == null)
+            if (curr.X < 9 && stage.tiles[curr.X + 1, curr.Y].Type == player.TileType && pathNodes[curr.X + 1, curr.Y] == null)
             {
                 pathNodes[curr.X + 1, curr.Y] = new PathNode(curr.X + 1, curr.Y, (pathNodes[curr.X, curr.Y].Distance + 1));
                 orderedNodes.Add(pathNodes[curr.X + 1, curr.Y]);
@@ -151,7 +149,7 @@ public class RunController : MonoBehaviour {
             }
 
             // Check Below ( Y - 1 )
-            if (curr.Y > 0 && stage.tiles[curr.X, curr.Y - 1].Type == playersTileType && pathNodes[curr.X, curr.Y - 1] == null)
+            if (curr.Y > 0 && stage.tiles[curr.X, curr.Y - 1].Type == player.TileType && pathNodes[curr.X, curr.Y - 1] == null)
             {
                 pathNodes[curr.X, curr.Y - 1] = new PathNode(curr.X, curr.Y - 1, (pathNodes[curr.X, curr.Y].Distance + 1));
                 orderedNodes.Add(pathNodes[curr.X, curr.Y - 1]);
@@ -260,26 +258,25 @@ public class RunController : MonoBehaviour {
     // shift the position of the runnerObject every frame, and return its new position 
     // to compare with next node in runPath
     enum direction { up, down, left, right };
-    float runSpeed = 1.5f;
-    Vector3 MoveRunnerObject(GameObject runObj, direction dir)
+    Vector3 MoveRunnerObject(Runner runner, direction dir)
     {
         audioController.PlayRunningSound();
         switch (dir)
         {
             case direction.up:
-                runObj.transform.Translate(0, 0, runSpeed * Time.deltaTime);
+                runner.GameObj.transform.Translate(0, 0, runner.Speed * Time.deltaTime);
                 break;
             case direction.down:
-                runObj.transform.Translate(0, 0, -runSpeed * Time.deltaTime);
+                runner.GameObj.transform.Translate(0, 0, -runner.Speed * Time.deltaTime);
                 break;
             case direction.left:
-                runObj.transform.Translate(-runSpeed * Time.deltaTime, 0, 0);
+                runner.GameObj.transform.Translate(-runner.Speed * Time.deltaTime, 0, 0);
                 break;
             case direction.right:
-                runObj.transform.Translate(runSpeed * Time.deltaTime, 0, 0);
+                runner.GameObj.transform.Translate(runner.Speed * Time.deltaTime, 0, 0);
                 break;
         }
-        return runObj.transform.position;
+        return runner.GameObj.transform.position;
     }
 
     // see if any of the nodes that have been captured, are in a runner's path, if so re-build runpath
@@ -302,20 +299,6 @@ public class RunController : MonoBehaviour {
                 }
             }
         }
-    }
-
-    int findMaxY()
-    {
-        int maxY = 0;
-        for (int i = 0; i < 10; i++)
-        {
-            for (int j = 0; j < 10; j++)
-            {
-                if (stage.tiles[i, j].Type == Tile.TileType.Player1) 
-                    if (stage.tiles[i, j].Y > maxY) { maxY = stage.tiles[i, j].Y; }
-            }
-        }
-        return maxY;
     }
 
     void LoadAssets() // temporary solution to visually indicate runner owner [remove later]
