@@ -57,4 +57,9 @@ public class Tile {
 		get { return tile_gameObj; }
 		set { tile_gameObj = value; }
 	}
+
+    public Renderer Renderer
+    {
+        get { return Tile_gameObj.GetComponent<Renderer>(); }
+    }
 }
