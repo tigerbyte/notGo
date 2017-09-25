@@ -8,8 +8,8 @@ public class Runner {
     // public Tile currentTile;
     private int x;
     private int y;
-    private int playerNumber;
     private float speed;
+    private Player player;
     private GameObject gameObj;
 
     List<PathNode> runPath;
@@ -17,9 +17,16 @@ public class Runner {
     float epsilon = 0.025f; // margin of error for confirming movement (prevent gameObj from getting stuck at ~0.99 of destination)
 
     // Runner constructor. Assigned to Player 1 or 2 based on the number given.
-    public Runner(int playerNumber) {
-        this.playerNumber = playerNumber;
-        Debug.Log("constructed a runner for player" + playerNumber);
+    public Runner(Player player) {
+        this.Player = player;
+    }
+
+    public Runner(int x, int y, Player player)
+    {
+        this.x = x;
+        this.y = y;
+        this.Player = player;
+        this.speed = 0.5f;
     }
 
     public int X
@@ -40,19 +47,16 @@ public class Runner {
         Y = y;
     }
 
-    public Runner(int x, int y, int playerNumber)
-    {
-        this.x = x;
-        this.y = y;
-        this.playerNumber = playerNumber;
-        this.speed = 0.5f;
-        Debug.Log("constructed a runner with position for Player" + playerNumber);
-    }
-
     public float Speed
     {
         get { return speed; }
         set { this.speed = value; }
+    }
+
+    public Player Player
+    {
+        get { return player; }
+        set { player = value; }
     }
 
     public GameObject GameObj
@@ -78,7 +82,7 @@ public class Runner {
         {
             Debug.Log("new position reached [ X:"+ RunPath[1].X+" Y:"+ RunPath[1].Y+" ], deleting node at [ X:" + RunPath[0].X + ", Y: " + RunPath[0].Y + " ] from runpath");
 
-            setPosition(RunPath[1].X, RunPath[1].Y);
+            this.setPosition(RunPath[1].X, RunPath[1].Y);
             RunPath.RemoveAt(0);
 
             string nodes = "";
@@ -88,5 +92,14 @@ public class Runner {
             }
             Debug.Log("printing path: " + nodes); 
         } 
+    }
+
+    public bool HasReachedOtherSide()
+    {
+        if (this.Y == Player.Opponent.startingRow)
+        {
+            return true;
+        }
+        else { return false; }
     }
 }

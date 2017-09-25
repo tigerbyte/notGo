@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class Player {
 
+    Player opponent;
     public int playerNumber;
     public int selectedX;
     public int selectedY;
@@ -66,19 +67,25 @@ public class Player {
         }
     }
 
+    public Player Opponent
+    {
+        get { return opponent; }
+        set { opponent = value; }
+    }
+
     public Runner Runner {
         get { return runner; }
         set { runner = value;  }
     }
 
     public Runner constructRunner(int x, int y) {
-        Runner = new Runner(x, y, playerNumber);
+        Runner = new Runner(x, y, this);
         return runner;
     }
 
     public Runner constructRunner(Vector2 spawnPosition)
     {
-        Runner = new Runner((int)spawnPosition.x, (int)spawnPosition.y, playerNumber);
+        Runner = new Runner((int)spawnPosition.x, (int)spawnPosition.y, this);
         return runner;
     }
 }

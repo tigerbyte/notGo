@@ -16,8 +16,6 @@ public class RunController : MonoBehaviour {
     Player p1;
     Player p2;
 
-    Material redMat, blueMat; // temporary solution to visually indicate runner owner [remove later]
-
     void Start() {
         // get a reference to the GameController, which will allow us to access Players, runners, etc.
         gameController = (GameController)FindObjectOfType(typeof(GameController));
@@ -28,46 +26,47 @@ public class RunController : MonoBehaviour {
 
         RunnerObject = (GameObject)Resources.Load("Prefabs/Runner");
 
-        LoadAssets(); // [remove later]
+        // for each player, check if a runner exists, once per second
+        InvokeRepeating("CheckRunnerStatus", 0, 1);
     }
 
-    void Update() {
+    void Update() { 
         updateRunner(p1);
         updateRunner(p2);
     }
 
     void updateRunner(Player player)
     {
-        // if no runner exists, instantiate the runner, 
-        // toDo : instantiate runner earlier,  maybe offscreen, instead of checking on its existence every frame
-        if (player.Runner == null)
+        if (player.Runner != null)
         {
-            for (int i = 0; i < stage.Dimensions; i++)
+            if (stage.tiles[player.Runner.X, player.Runner.Y].Type == player.Opponent.TileType)
             {
-                if (stage.tiles[i, player.startingRow].Type == player.TileType)
-                {
-                    Vector2 runnerSpawnPosition = new Vector2(stage.tiles[i, player.startingRow].X, stage.tiles[i, player.startingRow].Y);
-                    player.constructRunner(runnerSpawnPosition);
-                    player.Runner.GameObj = Instantiate(RunnerObject, new Vector3(runnerSpawnPosition.x, 1, runnerSpawnPosition.y), Quaternion.identity);
-
-                    if (player == p1) { player.Runner.GameObj.GetComponent<Renderer>().material = blueMat; }
-                    if (player == p2) { player.Runner.GameObj.GetComponent<Renderer>().material = redMat; }
-                }
+                DestroyRunner(player);
+                return;
             }
-        }
-        else if (player.Runner.RunPath != null && player.Runner.RunPath.Count > 1)
-        {
-            if (player.Runner.GameObj.transform.position.z < player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner, direction.up); }
-            if (player.Runner.GameObj.transform.position.z > player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner, direction.down); }
-            if (player.Runner.GameObj.transform.position.x > player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner, direction.left); }
-            if (player.Runner.GameObj.transform.position.x < player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner, direction.right); }
 
-            player.Runner.ComparePositionToPath();
+            if (player.Runner.RunPath != null && player.Runner.RunPath.Count > 1)
+            {
+                if (player.Runner.GameObj.transform.position.z < player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner, Direction.up); }
+                if (player.Runner.GameObj.transform.position.z > player.Runner.RunPath[1].Y) { MoveRunnerObject(player.Runner, Direction.down); }
+                if (player.Runner.GameObj.transform.position.x > player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner, Direction.left); }
+                if (player.Runner.GameObj.transform.position.x < player.Runner.RunPath[1].X) { MoveRunnerObject(player.Runner, Direction.right); }
+
+                player.Runner.ComparePositionToPath();
+                if (player.Runner.HasReachedOtherSide() == true) { gameController.SignalVictory(player); }
+            }
         }
     }
 
-    List<PathNode> orderedNodes = new List<PathNode>(); // A list of nodes (Tile positions) ordered by least to greatest distance from runner
+    void DestroyRunner(Player player)
+    {
+        audioController.PlayRunnerDeathSound();
+        Destroy(player.Runner.GameObj);
+        player.Runner = null;
+    }
 
+
+    List<PathNode> orderedNodes = new List<PathNode>(); // A list of nodes (Tile positions) ordered by least to greatest distance from runner
     // build a map of connected tiles for player 1
     public void BuildNodeMap(Player player)
     {
@@ -257,22 +256,21 @@ public class RunController : MonoBehaviour {
 
     // shift the position of the runnerObject every frame, and return its new position 
     // to compare with next node in runPath
-    enum direction { up, down, left, right };
-    Vector3 MoveRunnerObject(Runner runner, direction dir)
+    Vector3 MoveRunnerObject(Runner runner, Direction dir)
     {
         audioController.PlayRunningSound();
         switch (dir)
         {
-            case direction.up:
+            case Direction.up:
                 runner.GameObj.transform.Translate(0, 0, runner.Speed * Time.deltaTime);
                 break;
-            case direction.down:
+            case Direction.down:
                 runner.GameObj.transform.Translate(0, 0, -runner.Speed * Time.deltaTime);
                 break;
-            case direction.left:
+            case Direction.left:
                 runner.GameObj.transform.Translate(-runner.Speed * Time.deltaTime, 0, 0);
                 break;
-            case direction.right:
+            case Direction.right:
                 runner.GameObj.transform.Translate(runner.Speed * Time.deltaTime, 0, 0);
                 break;
         }
@@ -301,9 +299,29 @@ public class RunController : MonoBehaviour {
         }
     }
 
-    void LoadAssets() // temporary solution to visually indicate runner owner [remove later]
-    { 
-        blueMat = (Material)Resources.Load("Materials/BlueTileMat");
-        redMat = (Material)Resources.Load("Materials/RedTileMat");
+    void CheckRunnerStatus()
+    {
+        if (p1.Runner == null) SpawnRunner(p1);
+        if (p2.Runner == null) SpawnRunner(p2);
+    }
+
+    void SpawnRunner(Player player)
+    {
+        for (int i = 0; i < stage.Dimensions; i++)
+        {
+            if (stage.tiles[i, player.startingRow].Type == player.TileType)
+            {
+                Vector2 runnerSpawnPosition = new Vector2(stage.tiles[i, player.startingRow].X, stage.tiles[i, player.startingRow].Y);
+                player.constructRunner(runnerSpawnPosition);
+                player.Runner.GameObj = Instantiate(RunnerObject, new Vector3(runnerSpawnPosition.x, 1, runnerSpawnPosition.y), Quaternion.identity);
+
+                if (player == p1) { player.Runner.GameObj.GetComponent<Renderer>().material = gameController.assets.blueMat; }
+                if (player == p2) { player.Runner.GameObj.GetComponent<Renderer>().material = gameController.assets.redMat; }
+
+                BuildNodeMap(player); // check to see if there's any paths when newly re-spawned
+
+                break;
+            }
+        }
     }
 }

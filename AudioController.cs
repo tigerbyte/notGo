@@ -1,32 +1,38 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement; // Make a Scene Manager class
+using UnityEngine.SceneManagement;
 
 public class AudioController : MonoBehaviour {
 
-	public AudioSource capture;
-	public AudioSource swap;
-	public AudioSource newmatch;
-    public AudioSource running;
+    GameController gameController;
+    AssetData assets;
+
+    public AudioSource audioPlayer;
+    public AudioClip runnerDeath;
 
 	void Awake() {
-		DontDestroyOnLoad (transform.gameObject); // prevents destruction when loading new scenes
+		DontDestroyOnLoad (transform.gameObject); // prevents destruction of this object when loading new scenes
+        gameController = (GameController)FindObjectOfType(typeof(GameController));
 	}
 
 	void Start () {
-		// one audiosource for each sound effect
-		capture = gameObject.GetComponents<AudioSource> () [0];
-		swap = gameObject.GetComponents<AudioSource> () [1];
-        running = gameObject.GetComponents<AudioSource>() [2];
-        // newmatch = gameObject.GetComponents<AudioSource> () [2];
+        assets = gameController.assets; // get reference to assets which has references to all SFX
+		audioPlayer = gameObject.GetComponents<AudioSource> () [0];
     }
 
-	public void PlayCaptureSoundEffect() { capture.Play ();  }
-	public void PlaySwapSoundEffect()    { swap.Play ();     }  
-	public void PlayNewMatchSound()      { newmatch.Play (); }  
-    public void PlayRunningSound()       {
-        if (!running.isPlaying)
-        running.Play ();
+    public void PlayCaptureSoundEffect() { audioPlayer.PlayOneShot(assets.captureSound); }
+	public void PlaySwapSoundEffect()    { audioPlayer.PlayOneShot(assets.swapSound); } 
+    public void PlayRunnerDeathSound()   { audioPlayer.PlayOneShot(assets.runnerDeathSound); }
+    public void PlayVictorySound()       { audioPlayer.PlayOneShot(assets.victorySound); }
+    public void PlayNewMatchSound()      { }
+
+    // to do: find a way to loop running sound appropriately without using .Play()
+    public void PlayRunningSound()
+    {
+        if (!audioPlayer.isPlaying)
+        {
+            audioPlayer.clip = assets.runningSound; audioPlayer.Play();
+        }
     }
 }

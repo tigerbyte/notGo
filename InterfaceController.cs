@@ -12,8 +12,8 @@ public class InterfaceController : MonoBehaviour
     public Image P2EnergyBar;
     public Image P2EnergyBarFill;
     public Mask P2EnergyBarMask;
-
     public Image P1EnergyBarFill;
+    public Text VictoryText;
 
     delegate void UpdateUserInterface();
     UpdateUserInterface updateInterface;
@@ -52,5 +52,11 @@ public class InterfaceController : MonoBehaviour
     void Update()
     {
         updateInterface();
+    }
+
+    public void ShowVictoryText(Player player)
+    {
+        VictoryText.GetComponent<Text>().enabled = true;
+        VictoryText.text = "Player " + player.playerNumber + " is victorious.";
     }
 }

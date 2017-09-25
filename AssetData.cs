@@ -8,11 +8,13 @@ public class AssetData : ScriptableObject
     public Image P1EnergyBar, P2EnergyBar;
     public Material voidMat, voidRedSelected, voidBlueSelected, redOwnedBlueSelected,
                     redOwnedRedSelected, blueOwnedRedSelected, blueOwnedBlueSelected, blueMat, redMat;
+    public AudioClip runnerDeathSound, captureSound, runningSound, swapSound, victorySound;
     
 
     private void Awake()
     {
         LoadMaterials();
+        LoadSFX();
         LoadInterfaceComponents();
     }
 
@@ -27,6 +29,16 @@ public class AssetData : ScriptableObject
         blueOwnedRedSelected = (Material)Resources.Load("Materials/BlueOwnedRedSelected");
         blueMat = (Material)Resources.Load("Materials/BlueTileMat");
         redMat = (Material)Resources.Load("Materials/RedTileMat");
+    }
+
+    void LoadSFX()
+    {
+        Debug.Log("loading SFX");
+        runnerDeathSound = (AudioClip)Resources.Load("SoundFX/runnerdeath_sfx");
+        captureSound = (AudioClip)Resources.Load("SoundFX/capture_sfx");
+        runningSound = (AudioClip)Resources.Load("SoundFX/Running");
+        swapSound = (AudioClip)Resources.Load("SoundFX/swap_sfx");
+        victorySound = (AudioClip)Resources.Load("SoundFX/victory_sfx");
     }
 
     void LoadInterfaceComponents()
