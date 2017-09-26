@@ -26,7 +26,7 @@ public class Runner {
         this.x = x;
         this.y = y;
         this.Player = player;
-        this.speed = 0.5f;
+        this.speed = 0.8f;
     }
 
     public int X

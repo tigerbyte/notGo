@@ -18,6 +18,7 @@ public class GameView : ScriptableObject
         p2 = gameController.p2;
     }
 
+    // to do : find a less ridiculous way to apply visual effects 
     public void UpdateTileAppearance()
     {
         foreach (Tile tile in Tile.changedTiles)
@@ -28,25 +29,102 @@ public class GameView : ScriptableObject
                     tile.Renderer.material = assets.voidMat;
                     break;
                 case Tile.TileType.Player1:
-                    tile.Renderer.material = assets.blueMat;
+                    switch (tile.Condition)
+                    {
+                        case Tile.TileCondition.Normal:
+                            tile.Renderer.material = assets.blueMat;
+                            break;
+                        case Tile.TileCondition.Damaged:
+                            tile.Renderer.material = assets.blueDamaged;
+                            break;
+                    }
                     break;
                 case Tile.TileType.Player2:
-                    tile.Renderer.material = assets.redMat;
+                    switch (tile.Condition)
+                    {
+                        case Tile.TileCondition.Normal:
+                            tile.Renderer.material = assets.redMat;
+                            break;
+                        case Tile.TileCondition.Damaged:
+                            tile.Renderer.material = assets.redDamaged;
+                            break;
+                    }
                     break;
             }
         }
 
-        Tile P1SelectedTile = stage.tiles[p1.selectedX, p1.selectedY];
-        Tile P2SelectedTile = stage.tiles[p2.selectedX, p2.selectedY];
+        foreach (Tile tile in Tile.changedCondition)
+        {
+            switch (tile.Condition)
+            {
+                case Tile.TileCondition.Damaged:
+                    switch (tile.Type)
+                    {
+                        case Tile.TileType.Player1:
+                            tile.Renderer.material = assets.blueDamaged;
+                            break;
+                        case Tile.TileType.Player2:
+                            tile.Renderer.material = assets.redDamaged;
+                            break;
+                    }
+                    break;
+                case Tile.TileCondition.Normal:
+                    switch (tile.Type)
+                    {
+                        case Tile.TileType.Player1:
+                            tile.Renderer.material = assets.blueMat;
+                            break;
+                        case Tile.TileType.Player2:
+                            tile.Renderer.material = assets.redMat;
+                            break;
+                    }
+                    break;
+            }
+        }
 
-        if (P1SelectedTile.Type == Tile.TileType.Void) { P1SelectedTile.Renderer.material = assets.voidBlueSelected; }
-        else if (P1SelectedTile.Type == Tile.TileType.Player1) { P1SelectedTile.Renderer.material = assets.blueOwnedBlueSelected; }
-        else if (P1SelectedTile.Type == Tile.TileType.Player2) { P1SelectedTile.Renderer.material = assets.redOwnedBlueSelected; }
+        Tile P1SelectedTile = stage.tiles[p1.X, p1.Y];
+        Tile P2SelectedTile = stage.tiles[p2.X, p2.Y];
 
-        if (P2SelectedTile.Type == Tile.TileType.Void) { P2SelectedTile.Renderer.material = assets.voidRedSelected; }
-        else if (P2SelectedTile.Type == Tile.TileType.Player1) { P2SelectedTile.Renderer.material = assets.blueOwnedRedSelected; }
-        else if (P2SelectedTile.Type == Tile.TileType.Player2) { P2SelectedTile.Renderer.material = assets.redOwnedRedSelected; }
+        if (P1SelectedTile.Type == Tile.TileType.Void)
+        {
+            P1SelectedTile.Renderer.material = assets.voidBlueSelected;
+        }
+        else if (P1SelectedTile.Type == Tile.TileType.Player1)
+        {
+            if (P1SelectedTile.Condition == Tile.TileCondition.Normal)
+                P1SelectedTile.Renderer.material = assets.blueOwnedBlueSelected;
+            if (P1SelectedTile.Condition == Tile.TileCondition.Damaged)
+                P1SelectedTile.Renderer.material = assets.blueOnBlueDamaged;
+        }
+        else if (P1SelectedTile.Type == Tile.TileType.Player2)
+        {
+            if (P1SelectedTile.Condition == Tile.TileCondition.Normal)
+                P1SelectedTile.Renderer.material = assets.redOwnedBlueSelected;
+            if (P1SelectedTile.Condition == Tile.TileCondition.Damaged)
+                P1SelectedTile.Renderer.material = assets.blueOnRedDamaged;
+        }
+
+
+        if (P2SelectedTile.Type == Tile.TileType.Void)
+        {
+            P2SelectedTile.Renderer.material = assets.voidRedSelected;
+        }
+        else if (P2SelectedTile.Type == Tile.TileType.Player1)
+        {
+            if (P2SelectedTile.Condition == Tile.TileCondition.Normal)
+                P2SelectedTile.Renderer.material = assets.blueOwnedRedSelected;
+            if (P2SelectedTile.Condition == Tile.TileCondition.Damaged)
+                P2SelectedTile.Renderer.material = assets.redOnBlueDamaged;
+        }
+        else if (P2SelectedTile.Type == Tile.TileType.Player2)
+        {
+            if (P2SelectedTile.Condition == Tile.TileCondition.Normal)
+                P2SelectedTile.Renderer.material = assets.redOwnedRedSelected;
+            if (P2SelectedTile.Condition == Tile.TileCondition.Damaged)
+                P2SelectedTile.Renderer.material = assets.redOnRedDamaged;
+        }
 
         Tile.changedTiles.Clear();
+        Tile.changedCondition.Clear();
     }
 }

@@ -5,8 +5,8 @@ public class Player {
 
     Player opponent;
     public int playerNumber;
-    public int selectedX;
-    public int selectedY;
+    public int X;
+    public int Y;
     public Runner runner;
     public int startingRow;
     float energy;
@@ -17,14 +17,14 @@ public class Player {
 
         if (playerNumber == 1)
         {
-            this.selectedX = 0;
-            this.selectedY = 0;
+            this.X = 0;
+            this.Y = 0;
             startingRow = 0;
         }
         else if (playerNumber == 2)
         {
-            this.selectedX = dimensions - 1;
-            this.selectedY = dimensions - 1;
+            this.X = dimensions - 1;
+            this.Y = dimensions - 1;
             startingRow = dimensions - 1;
         }
     }
@@ -53,16 +53,16 @@ public class Player {
         switch (direction)
         {
             case Direction.up:
-                if (this.selectedY < stage.Dimensions - 1) this.selectedY++;
+                if (this.Y < stage.Dimensions - 1) this.Y++;
                 break;
             case Direction.down:
-                if (this.selectedY > 0) this.selectedY--;
+                if (this.Y > 0) this.Y--;
                 break;
             case Direction.left:
-                if (this.selectedX > 0) this.selectedX--;
+                if (this.X > 0) this.X--;
                 break;
             case Direction.right:
-                if (this.selectedX < stage.Dimensions - 1) this.selectedX++;
+                if (this.X < stage.Dimensions - 1) this.X++;
                 break;
         }
     }

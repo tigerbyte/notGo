@@ -25,6 +25,7 @@ public class AudioController : MonoBehaviour {
 	public void PlaySwapSoundEffect()    { audioPlayer.PlayOneShot(assets.swapSound); } 
     public void PlayRunnerDeathSound()   { audioPlayer.PlayOneShot(assets.runnerDeathSound); }
     public void PlayVictorySound()       { audioPlayer.PlayOneShot(assets.victorySound); }
+    public void PlayShatterSound()       { audioPlayer.PlayOneShot(assets.shatterSound); }
     public void PlayNewMatchSound()      { }
 
     // to do: find a way to loop running sound appropriately without using .Play()
