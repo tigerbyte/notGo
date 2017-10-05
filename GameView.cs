@@ -1,51 +1,55 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class GameView : ScriptableObject
+public class GameView : NetworkBehaviour
 {
     AssetData assets;
-    GameController gameController;
-    Stage stage;
-    Player p1, p2;
+    public GameController gameController;
+    public Stage stage;
+    public Player p1, p2;
 
-    void Awake()
+    void Start()
     {
         gameController = (GameController)GameObject.FindObjectOfType(typeof(GameController));
-        assets = gameController.assets;
-        stage = gameController.stage;
-        p1 = gameController.p1;
-        p2 = gameController.p2;
+        assets = (AssetData)GameObject.FindObjectOfType(typeof(AssetData));
     }
 
-    // to do : find a less ridiculous way to apply visual effects 
-    public void UpdateTileAppearance()
+
+    [ClientRpc]
+    public void RpcUpdateTileAppearance()
     {
-        foreach (Tile tile in Tile.changedTiles)
+        Debug.Log("rpc client updating tile appearance");
+
+        Tile[] allTiles = GameObject.FindObjectsOfType<Tile>();
+        Debug.Log("GameView found lots of tiles : # = " + allTiles.Length);
+
+        foreach (Tile tile in allTiles)
         {
             switch (tile.Type)
             {
-                case Tile.TileType.Void:
+                case TileType.Void:
                     tile.Renderer.material = assets.voidMat;
                     break;
-                case Tile.TileType.Player1:
-                    switch (tile.Condition)
+                case TileType.Player1:
+                    switch (tile.condition)
                     {
-                        case Tile.TileCondition.Normal:
+                        case TileCondition.Normal:
                             tile.Renderer.material = assets.blueMat;
                             break;
-                        case Tile.TileCondition.Damaged:
+                        case TileCondition.Damaged:
                             tile.Renderer.material = assets.blueDamaged;
                             break;
                     }
                     break;
-                case Tile.TileType.Player2:
-                    switch (tile.Condition)
+                case TileType.Player2:
+                    switch (tile.condition)
                     {
-                        case Tile.TileCondition.Normal:
+                        case TileCondition.Normal:
                             tile.Renderer.material = assets.redMat;
                             break;
-                        case Tile.TileCondition.Damaged:
+                        case TileCondition.Damaged:
                             tile.Renderer.material = assets.redDamaged;
                             break;
                     }
@@ -53,28 +57,30 @@ public class GameView : ScriptableObject
             }
         }
 
+        /*
+         
         foreach (Tile tile in Tile.changedCondition)
         {
             switch (tile.Condition)
             {
-                case Tile.TileCondition.Damaged:
+                case TileCondition.Damaged:
                     switch (tile.Type)
                     {
-                        case Tile.TileType.Player1:
+                        case TileType.Player1:
                             tile.Renderer.material = assets.blueDamaged;
                             break;
-                        case Tile.TileType.Player2:
+                        case TileType.Player2:
                             tile.Renderer.material = assets.redDamaged;
                             break;
                     }
                     break;
-                case Tile.TileCondition.Normal:
+                case TileCondition.Normal:
                     switch (tile.Type)
                     {
-                        case Tile.TileType.Player1:
+                        case TileType.Player1:
                             tile.Renderer.material = assets.blueMat;
                             break;
-                        case Tile.TileType.Player2:
+                        case TileType.Player2:
                             tile.Renderer.material = assets.redMat;
                             break;
                     }
@@ -82,49 +88,191 @@ public class GameView : ScriptableObject
             }
         }
 
+        
+         
+        Debug.Log("p1 x = " + p1.X + " p1 y = " + p1.Y);
+        Debug.Log("p2 x = " + p2.X + " p2 y = " + p2.Y);
+
         Tile P1SelectedTile = stage.tiles[p1.X, p1.Y];
         Tile P2SelectedTile = stage.tiles[p2.X, p2.Y];
+        Debug.Log("numer of tiles (or columns ? ) in stage is : " + stage.tiles.Length);
 
-        if (P1SelectedTile.Type == Tile.TileType.Void)
+        if (P1SelectedTile.Type == TileType.Void)
         {
             P1SelectedTile.Renderer.material = assets.voidBlueSelected;
         }
-        else if (P1SelectedTile.Type == Tile.TileType.Player1)
+        else if (P1SelectedTile.Type == TileType.Player1)
         {
-            if (P1SelectedTile.Condition == Tile.TileCondition.Normal)
+            if (P1SelectedTile.Condition == TileCondition.Normal)
                 P1SelectedTile.Renderer.material = assets.blueOwnedBlueSelected;
-            if (P1SelectedTile.Condition == Tile.TileCondition.Damaged)
+            if (P1SelectedTile.Condition == TileCondition.Damaged)
                 P1SelectedTile.Renderer.material = assets.blueOnBlueDamaged;
         }
-        else if (P1SelectedTile.Type == Tile.TileType.Player2)
+        else if (P1SelectedTile.Type == TileType.Player2)
         {
-            if (P1SelectedTile.Condition == Tile.TileCondition.Normal)
+            if (P1SelectedTile.Condition == TileCondition.Normal)
                 P1SelectedTile.Renderer.material = assets.redOwnedBlueSelected;
-            if (P1SelectedTile.Condition == Tile.TileCondition.Damaged)
+            if (P1SelectedTile.Condition == TileCondition.Damaged)
                 P1SelectedTile.Renderer.material = assets.blueOnRedDamaged;
         }
 
 
-        if (P2SelectedTile.Type == Tile.TileType.Void)
+        if (P2SelectedTile.Type == TileType.Void)
         {
             P2SelectedTile.Renderer.material = assets.voidRedSelected;
         }
-        else if (P2SelectedTile.Type == Tile.TileType.Player1)
+        else if (P2SelectedTile.Type == TileType.Player1)
         {
-            if (P2SelectedTile.Condition == Tile.TileCondition.Normal)
+            if (P2SelectedTile.Condition == TileCondition.Normal)
                 P2SelectedTile.Renderer.material = assets.blueOwnedRedSelected;
-            if (P2SelectedTile.Condition == Tile.TileCondition.Damaged)
+            if (P2SelectedTile.Condition == TileCondition.Damaged)
                 P2SelectedTile.Renderer.material = assets.redOnBlueDamaged;
         }
-        else if (P2SelectedTile.Type == Tile.TileType.Player2)
+        else if (P2SelectedTile.Type == TileType.Player2)
         {
-            if (P2SelectedTile.Condition == Tile.TileCondition.Normal)
+            if (P2SelectedTile.Condition == TileCondition.Normal)
                 P2SelectedTile.Renderer.material = assets.redOwnedRedSelected;
-            if (P2SelectedTile.Condition == Tile.TileCondition.Damaged)
+            if (P2SelectedTile.Condition == TileCondition.Damaged)
                 P2SelectedTile.Renderer.material = assets.redOnRedDamaged;
         }
 
         Tile.changedTiles.Clear();
         Tile.changedCondition.Clear();
+
+    */
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* old 
+ * 
+ * 
+[ClientRpc]
+public void RpcUpdateTileAppearance()
+{
+    Debug.Log("rpc client updating tile appearance");
+
+    foreach (Tile tile in Tile.changedTiles)
+    {
+        switch (tile.Type)
+        {
+            case TileType.Void:
+                tile.Renderer.material = assets.voidMat;
+                break;
+            case TileType.Player1:
+                switch (tile.Condition)
+                {
+                    case TileCondition.Normal:
+                        tile.Renderer.material = assets.blueMat;
+                        break;
+                    case TileCondition.Damaged:
+                        tile.Renderer.material = assets.blueDamaged;
+                        break;
+                }
+                break;
+            case TileType.Player2:
+                switch (tile.Condition)
+                {
+                    case TileCondition.Normal:
+                        tile.Renderer.material = assets.redMat;
+                        break;
+                    case TileCondition.Damaged:
+                        tile.Renderer.material = assets.redDamaged;
+                        break;
+                }
+                break;
+        }
+    }
+
+    foreach (Tile tile in Tile.changedCondition)
+    {
+        switch (tile.Condition)
+        {
+            case TileCondition.Damaged:
+                switch (tile.Type)
+                {
+                    case TileType.Player1:
+                        tile.Renderer.material = assets.blueDamaged;
+                        break;
+                    case TileType.Player2:
+                        tile.Renderer.material = assets.redDamaged;
+                        break;
+                }
+                break;
+            case TileCondition.Normal:
+                switch (tile.Type)
+                {
+                    case TileType.Player1:
+                        tile.Renderer.material = assets.blueMat;
+                        break;
+                    case TileType.Player2:
+                        tile.Renderer.material = assets.redMat;
+                        break;
+                }
+                break;
+        }
+    }
+
+    Debug.Log("p1 x = " + p1.X + " p1 y = " + p1.Y);
+    Debug.Log("p2 x = " + p2.X + " p2 y = " + p2.Y);
+
+    Tile P1SelectedTile = stage.tiles[p1.X, p1.Y];
+    Tile P2SelectedTile = stage.tiles[p2.X, p2.Y];
+    Debug.Log("numer of tiles (or columns ? ) in stage is : " + stage.tiles.Length);
+
+    if (P1SelectedTile.Type == TileType.Void)
+    {
+        P1SelectedTile.Renderer.material = assets.voidBlueSelected;
+    }
+    else if (P1SelectedTile.Type == TileType.Player1)
+    {
+        if (P1SelectedTile.Condition == TileCondition.Normal)
+            P1SelectedTile.Renderer.material = assets.blueOwnedBlueSelected;
+        if (P1SelectedTile.Condition == TileCondition.Damaged)
+            P1SelectedTile.Renderer.material = assets.blueOnBlueDamaged;
+    }
+    else if (P1SelectedTile.Type == TileType.Player2)
+    {
+        if (P1SelectedTile.Condition == TileCondition.Normal)
+            P1SelectedTile.Renderer.material = assets.redOwnedBlueSelected;
+        if (P1SelectedTile.Condition == TileCondition.Damaged)
+            P1SelectedTile.Renderer.material = assets.blueOnRedDamaged;
+    }
+
+
+    if (P2SelectedTile.Type == TileType.Void)
+    {
+        P2SelectedTile.Renderer.material = assets.voidRedSelected;
+    }
+    else if (P2SelectedTile.Type == TileType.Player1)
+    {
+        if (P2SelectedTile.Condition == TileCondition.Normal)
+            P2SelectedTile.Renderer.material = assets.blueOwnedRedSelected;
+        if (P2SelectedTile.Condition == TileCondition.Damaged)
+            P2SelectedTile.Renderer.material = assets.redOnBlueDamaged;
+    }
+    else if (P2SelectedTile.Type == TileType.Player2)
+    {
+        if (P2SelectedTile.Condition == TileCondition.Normal)
+            P2SelectedTile.Renderer.material = assets.redOwnedRedSelected;
+        if (P2SelectedTile.Condition == TileCondition.Damaged)
+            P2SelectedTile.Renderer.material = assets.redOnRedDamaged;
+    }
+
+    Tile.changedTiles.Clear();
+    Tile.changedCondition.Clear();
+}
+}
+
+*/

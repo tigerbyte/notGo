@@ -1,47 +1,61 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class Tile
+public class Tile : NetworkBehaviour
 {
-
     public static List<Tile> changedTiles = new List<Tile>(); // a static list of tiles that have had their state changed
     public static List<Tile> changedCondition = new List<Tile>();
-    public enum TileType { Void, Player1, Player2 };
-    TileType type;
-    public enum TileCondition { Damaged, Normal, Reinforced };
-    TileCondition condition;
-    int x;
-    int y;
+    public GameController gameController;
+
+    [SyncVar]
+    public TileType type;
+
+    [SyncVar]
+    public TileCondition condition;
+
+    [SyncVar]
+    public int x;
+
+    [SyncVar]
+    public int y;
+
+    public AssetData assets;
 
     public bool typeHasChanged; // flag to determine whether material should be updated
 
-    public GameObject tile_gameObj;
-
-
-    public Tile(int x, int y)
+    public void Start()
     {
-        this.x = x;
-        this.y = y;
-        this.Type = TileType.Void;
-        this.Condition = TileCondition.Normal;
+        gameController = (GameController)GameObject.FindObjectOfType(typeof(GameController));
+
+        Type = TileType.Void;
+        Condition = TileCondition.Normal;
+
+        this.gameObject.GetComponent<Renderer>().material = gameController.assets.voidMat;
     }
 
-    public Tile(int x, int y, TileType type)
+    public void Update()
     {
-        this.x = x;
-        this.y = y;
-        this.Type = type;
-        this.Condition = TileCondition.Normal;
+        
     }
 
-    public int X { get { return x; } }
-    public int Y { get { return y; } }
-
-    public GameObject Tile_gameObj
+    public Tile TileData
     {
-        get { return tile_gameObj; }
-        set { tile_gameObj = value; }
+        get { return this; }
+    }
+
+    public int X
+    {
+        get { return x; }
+        set { this.x = value; }
+
+    }
+
+    public int Y
+    {
+        get { return y; }
+        set { this.y = value; }
     }
 
     public TileType Type
@@ -73,7 +87,7 @@ public class Tile
 
     public Renderer Renderer
     {
-        get { return Tile_gameObj.GetComponent<Renderer>(); }
+        get { return this.GetComponent<Renderer>(); }
     }
 
     public void DamageTile(Player attacker)

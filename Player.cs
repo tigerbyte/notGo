@@ -1,32 +1,95 @@
 ﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class Player {
-
-    Player opponent;
-    public int playerNumber;
-    public int X;
-    public int Y;
+public class Player : NetworkBehaviour {
+    
+    public GameController gameController;
+    public Player opponent;
     public Runner runner;
-    public int startingRow;
-    float energy;
+    public int startingRow = 0;
 
-    public Player(int playerNumber, int dimensions) {
+    // new just testing
+    public GameView gameView;
 
-        this.playerNumber = playerNumber;
+    [SyncVar]
+    public int playerNumber;
 
-        if (playerNumber == 1)
+    [SyncVar]
+    public int X;
+
+    [SyncVar]
+    public int Y;
+
+    [SyncVar]
+    public float energy;
+
+    int dimensions = 10;
+
+    public void Start()
+    {
+        // destroy this script on objects that don't belong to the player
+        if (!isLocalPlayer) Destroy(this);
+
+        this.X = 0;
+        this.Y = 0;
+
+        gameController = (GameController)FindObjectOfType(typeof(GameController));
+        gameView = (GameView)GameObject.FindObjectOfType(typeof(GameView));
+
+        //if (isLocalPlayer)
+        if (isServer)
+        gameController.CmdRegisterPlayer(this.gameObject);
+    }
+
+
+    public void Update()
+    {
+        if (isLocalPlayer)
         {
-            this.X = 0;
-            this.Y = 0;
-            startingRow = 0;
+            if (Input.GetKeyDown("w") || Input.GetKeyDown("a") || Input.GetKeyDown("s") || Input.GetKeyDown("d"))
+            {
+                if (Input.GetKeyDown("w") && this.Y < dimensions - 1)
+                {
+                    this.Y = this.Y + 1;
+                    transform.Translate(0, 0, 1);
+                }
+
+                if (Input.GetKeyDown("a") && this.X > 0)
+                {
+                    this.X = this.X - 1;
+                    transform.Translate(-1, 0, 0);
+                }
+
+                if (Input.GetKeyDown("s") && this.Y > 0)
+                {
+                    this.Y = this.Y - 1;
+                    transform.Translate(0, 0, -1);
+                }
+
+                if (Input.GetKeyDown("d") && this.X < dimensions - 1)
+                {
+                    this.X = this.X + 1;
+                    transform.Translate(1, 0, 0);
+                }
+            }
+
+            if (Input.GetKeyDown("space"))
+            {
+                gameController.audioController.PlayCaptureSoundEffect();
+                Debug.Log("player " + this.playerNumber + " pressed space.");
+                Debug.Log("# of items in SyncList is : " + gameController.stage.PrintListLength());
+
+                CmdChangeTileType();
+            }
         }
-        else if (playerNumber == 2)
-        {
-            this.X = dimensions - 1;
-            this.Y = dimensions - 1;
-            startingRow = dimensions - 1;
-        }
+    }
+
+    [Command]
+    public void CmdChangeTileType()
+    {
+        gameController.stage.tiles[this.X, this.Y].type = this.TileType;
+        gameView.RpcUpdateTileAppearance();
     }
 
     public float Energy
@@ -40,11 +103,11 @@ public class Player {
         Energy = Energy - amount;
     }
     
-    public Tile.TileType TileType {
+    public TileType TileType {
         get
         {
-            if (playerNumber == 1) { return Tile.TileType.Player1; }
-            else { return Tile.TileType.Player2; }
+            if (playerNumber == 1) { return TileType.Player1; }
+            else { return TileType.Player2; }
         }
     }
 
@@ -89,3 +152,27 @@ public class Player {
         return runner;
     }
 }
+
+/*
+
+public Player(int playerNumber, int dimensions)
+{
+
+    this.playerNumber = playerNumber;
+
+    if (playerNumber == 1)
+    {
+        this.X = 0;
+        this.Y = 0;
+        startingRow = 0;
+    }
+    else if (playerNumber == 2)
+    {
+        this.X = dimensions - 1;
+        this.Y = dimensions - 1;
+        startingRow = dimensions - 1;
+    }
+}
+
+
+    */
